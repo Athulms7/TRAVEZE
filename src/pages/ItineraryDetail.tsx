@@ -3,6 +3,33 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Calendar, Clock, MapPin, Plane, Bus, Train, Ship, Wallet, Sunrise, Sunset, Coffee, Utensils, Camera, Briefcase } from "lucide-react";
 import BackgroundImage from "../components/BackgroundImage";
 import Weather from "../components/Weather";
+import Map from "../components/Map";
+
+interface Place {
+  name: string;
+  location: string;
+  type: 'activity' | 'transportation' | 'accommodation';
+}
+
+interface FlightTransport {
+  type: "flight";
+  name: string;
+  from: string;
+  to: string;
+  departureTime: string;
+  arrivalTime: string;
+  date: string;
+  icon: typeof Plane;
+}
+
+interface OtherTransport {
+  type: "train" | "bus" | "subway" | "car";
+  name: string;
+  description: string;
+  icon: typeof Train | typeof Bus;
+}
+
+type Transport = FlightTransport | OtherTransport;
 
 // Sample itineraries data with detailed information
 const itinerariesData = {
@@ -14,11 +41,11 @@ const itinerariesData = {
     startDate: "June 15, 2023",
     endDate: "June 20, 2023",
     budget: {
-      total: "€1,500",
-      accommodation: "€600",
-      food: "€300",
-      transport: "€200",
-      activities: "€400"
+      total: "₹1,35,000",
+      accommodation: "₹54,000",
+      food: "₹27,000",
+      transport: "₹18,000",
+      activities: "₹36,000"
     },
     transportation: [
       { type: "flight", name: "Air France", from: "New York JFK", to: "Paris CDG", departureTime: "10:30 AM", arrivalTime: "11:45 PM", date: "June 15, 2023", icon: Plane },
@@ -79,11 +106,11 @@ const itinerariesData = {
     startDate: "July 10, 2023",
     endDate: "July 17, 2023",
     budget: {
-      total: "¥200,000",
-      accommodation: "¥70,000",
-      food: "¥50,000",
-      transport: "¥30,000",
-      activities: "¥50,000"
+      total: "₹1,20,000",
+      accommodation: "₹42,000",
+      food: "₹30,000",
+      transport: "₹18,000",
+      activities: "₹30,000"
     },
     transportation: [
       { type: "flight", name: "JAL", from: "San Francisco SFO", to: "Tokyo NRT", departureTime: "1:30 PM", arrivalTime: "5:45 PM", date: "July 10, 2023", icon: Plane },
@@ -144,11 +171,11 @@ const itinerariesData = {
     startDate: "August 5, 2023",
     endDate: "August 15, 2023",
     budget: {
-      total: "Rp 15,000,000",
-      accommodation: "Rp 6,000,000",
-      food: "Rp 3,000,000",
-      transport: "Rp 2,000,000",
-      activities: "Rp 4,000,000"
+      total: "₹90,000",
+      accommodation: "₹36,000",
+      food: "₹18,000",
+      transport: "₹12,000",
+      activities: "₹24,000"
     },
     transportation: [
       { type: "flight", name: "Garuda Indonesia", from: "Singapore Changi", to: "Denpasar DPS", departureTime: "11:30 AM", arrivalTime: "2:15 PM", date: "August 5, 2023", icon: Plane },
@@ -208,11 +235,11 @@ const itinerariesData = {
     startDate: "September 20, 2023",
     endDate: "September 24, 2023",
     budget: {
-      total: "$2,000",
-      accommodation: "$800",
-      food: "$400",
-      transport: "$200",
-      activities: "$600"
+      total: "₹1,80,000",
+      accommodation: "₹72,000",
+      food: "₹36,000",
+      transport: "₹18,000",
+      activities: "₹54,000"
     },
     transportation: [
       { type: "flight", name: "Delta Airlines", from: "Chicago ORD", to: "New York JFK", departureTime: "9:30 AM", arrivalTime: "12:45 PM", date: "September 20, 2023", icon: Plane },
@@ -291,6 +318,22 @@ const ItineraryDetail = () => {
 
   const itinerary = itinerariesData[itineraryId as keyof typeof itinerariesData];
 
+  // Extract places from the itinerary data
+  const places: Place[] = [
+    ...itinerary.transportation.map(transport => ({
+      name: transport.name,
+      location: transport.type === 'flight' ? transport.to : itinerary.location,
+      type: 'transportation' as const
+    } as Place)),
+    ...itinerary.dayPlans.flatMap(day => 
+      day.activities.map(activity => ({
+        name: activity.activity,
+        location: itinerary.location,
+        type: 'activity' as const
+      } as Place))
+    )
+  ];
+
   return (
     <div className="min-h-screen bg-vander-light">
       <BackgroundImage />
@@ -335,6 +378,10 @@ const ItineraryDetail = () => {
           <div className="lg:col-span-2">
             <div className="glassmorphism rounded-2xl p-6 mb-8">
               <Weather location={itinerary.location} />
+            </div>
+            
+            <div className="glassmorphism rounded-2xl p-6 mb-8">
+              <Map places={places} center={itinerary.location} />
             </div>
             
             <div className="glassmorphism rounded-2xl p-6 mb-8">

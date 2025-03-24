@@ -1,142 +1,139 @@
+import React, { useEffect, useRef } from 'react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
-import React, { useEffect, useRef, useState } from 'react';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
-import { MapPin } from 'lucide-react';
-
-// Placeholder for the Mapbox token
-// In a production app, this should be stored in environment variables
-const MAPBOX_TOKEN = "YOUR_MAPBOX_TOKEN"; // Replace with your token
-
-interface MapProps {
-  location: string;
+interface Place {
   name: string;
-  className?: string;
+  location: string;
+  type: 'activity' | 'transportation' | 'accommodation';
 }
 
-const Map: React.FC<MapProps> = ({ location, name, className = "h-64 w-full" }) => {
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<mapboxgl.Map | null>(null);
-  const [mapReady, setMapReady] = useState(false);
-  const [tokenInput, setTokenInput] = useState("");
-  const [token, setToken] = useState(MAPBOX_TOKEN);
+interface MapProps {
+  places: Place[];
+  center: string;
+}
 
-  // Get coordinates based on location name
-  const getCoordinates = async (locationName: string) => {
-    try {
-      // Using OpenStreetMap Nominatim API for geocoding (free and doesn't require token)
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationName)}`);
-      const data = await response.json();
-      
-      if (data && data.length > 0) {
-        return {
-          lng: parseFloat(data[0].lon),
-          lat: parseFloat(data[0].lat)
-        };
-      }
-      
-      // Default coordinates if location not found
-      return { lng: 0, lat: 0 };
-    } catch (error) {
-      console.error("Error fetching coordinates:", error);
-      return { lng: 0, lat: 0 };
-    }
-  };
+const Map: React.FC<MapProps> = ({ places, center }) => {
+  const mapRef = useRef<L.Map | null>(null);
+  const markersRef = useRef<L.Marker[]>([]);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    let isMounted = true;
-    
-    const initializeMap = async () => {
-      if (!mapContainer.current || !token || token === "YOUR_MAPBOX_TOKEN") return;
+    // Initialize map
+    if (mapContainerRef.current && !mapRef.current) {
+      mapRef.current = L.map(mapContainerRef.current).setView([0, 0], 2);
       
-      try {
-        mapboxgl.accessToken = token;
-        
-        const coordinates = await getCoordinates(location);
-        
-        if (!isMounted) return;
-        
-        map.current = new mapboxgl.Map({
-          container: mapContainer.current,
-          style: 'mapbox://styles/mapbox/streets-v11',
-          center: [coordinates.lng, coordinates.lat],
-          zoom: 12
-        });
-        
-        map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
-        
-        // Add marker for the place
-        new mapboxgl.Marker({ color: "#4EC98D" })
-          .setLngLat([coordinates.lng, coordinates.lat])
-          .setPopup(new mapboxgl.Popup().setHTML(`<strong>${name}</strong><br>${location}`))
-          .addTo(map.current);
-          
-        setMapReady(true);
-      } catch (error) {
-        console.error("Error initializing map:", error);
-      }
-    };
-    
-    initializeMap();
-    
+      // Add OpenStreetMap tiles
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(mapRef.current);
+    }
+
     return () => {
-      isMounted = false;
-      if (map.current) {
-        map.current.remove();
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
       }
+      markersRef.current.forEach(marker => marker.remove());
     };
-  }, [location, name, token]);
-  
-  const handleTokenSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (tokenInput.trim()) {
-      setToken(tokenInput.trim());
-      localStorage.setItem('mapbox_token', tokenInput.trim());
-    }
-  };
-
-  useEffect(() => {
-    // Try to load token from localStorage
-    const savedToken = localStorage.getItem('mapbox_token');
-    if (savedToken) {
-      setToken(savedToken);
-    }
   }, []);
 
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    // Geocode center location
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(center)}`)
+      .then(response => response.json())
+      .then(data => {
+        if (data && data[0]) {
+          const { lat, lon } = data[0];
+          mapRef.current?.setView([lat, lon], 13);
+        }
+      })
+      .catch(error => console.error('Error geocoding center:', error));
+
+    // Geocode and add markers for each place
+    places.forEach(place => {
+      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(place.location)}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data && data[0]) {
+            const { lat, lon } = data[0];
+            const marker = L.marker([lat, lon], { icon: getMarkerIcon(place.type) })
+              .addTo(mapRef.current!)
+              .bindPopup(`
+                <div class="p-2">
+                  <h3 class="font-semibold">${place.name}</h3>
+                  <p class="text-sm text-gray-600">${place.location}</p>
+                </div>
+              `);
+            markersRef.current.push(marker);
+          }
+        })
+        .catch(error => console.error(`Error geocoding ${place.name}:`, error));
+    });
+  }, [places, center]);
+
+  const handlePlaceClick = (place: Place) => {
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(place.location)}`)
+      .then(response => response.json())
+      .then(data => {
+        if (data && data[0]) {
+          const { lat, lon } = data[0];
+          mapRef.current?.setView([lat, lon], 15);
+          // Find and open the popup for this place
+          const marker = markersRef.current.find(m => 
+            m.getLatLng().lat === lat && m.getLatLng().lng === lon
+          );
+          marker?.openPopup();
+        }
+      })
+      .catch(error => console.error(`Error geocoding ${place.name}:`, error));
+  };
+
+  const getMarkerIcon = (type: Place['type']) => {
+    const iconUrl = type === 'activity' 
+      ? 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png'
+      : type === 'transportation'
+      ? 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png'
+      : 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png';
+    
+    return L.icon({
+      iconUrl,
+      shadowUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41],
+      shadowAnchor: [12, 41]
+    });
+  };
+
   return (
-    <div className={`glassmorphism rounded-xl overflow-hidden ${className}`}>
-      {(!token || token === "YOUR_MAPBOX_TOKEN") ? (
-        <div className="p-4 h-full flex flex-col items-center justify-center">
-          <MapPin size={24} className="text-vander-green mb-2" />
-          <h3 className="text-sm font-medium text-vander-dark mb-2">Map Visualization</h3>
-          <p className="text-xs text-vander-gray mb-4 text-center">
-            To view the map, please enter your Mapbox token
-          </p>
-          <form onSubmit={handleTokenSubmit} className="w-full max-w-sm">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={tokenInput}
-                onChange={(e) => setTokenInput(e.target.value)}
-                placeholder="Enter your Mapbox token"
-                className="form-input text-xs flex-1"
-              />
-              <button type="submit" className="vander-button px-3 py-2 text-xs">
-                Set Token
-              </button>
-            </div>
-            <p className="mt-2 text-xs text-vander-gray">
-              Get your token at <a href="https://mapbox.com/" target="_blank" rel="noopener noreferrer" className="text-vander-teal hover:underline">mapbox.com</a>
-            </p>
-          </form>
+    <div className="space-y-4">
+      <div ref={mapContainerRef} className="h-[400px] rounded-lg"></div>
+      <div className="glassmorphism rounded-lg p-4">
+        <h3 className="text-lg font-semibold text-vander-dark mb-3">Places in Itinerary</h3>
+        <div className="space-y-2">
+          {places.map((place, index) => (
+            <button
+              key={index}
+              onClick={() => handlePlaceClick(place)}
+              className="w-full text-left p-2 rounded-lg hover:bg-white/50 transition-colors flex items-center space-x-2"
+            >
+              <div className={`w-3 h-3 rounded-full ${
+                place.type === 'activity' ? 'bg-blue-500' :
+                place.type === 'transportation' ? 'bg-green-500' :
+                'bg-red-500'
+              }`} />
+              <div>
+                <div className="font-medium text-vander-dark">{place.name}</div>
+                <div className="text-sm text-vander-gray">{place.location}</div>
+              </div>
+            </button>
+          ))}
         </div>
-      ) : !mapReady ? (
-        <div className="h-full flex items-center justify-center">
-          <div className="w-8 h-8 border-4 border-vander-green border-t-transparent rounded-full animate-spin" />
-        </div>
-      ) : (
-        <div ref={mapContainer} className="h-full w-full" />
-      )}
+      </div>
     </div>
   );
 };

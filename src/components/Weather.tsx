@@ -1,6 +1,5 @@
-
 import React, { useEffect, useState } from "react";
-import { Cloud, CloudRain, CloudSnow, Droplets, Sun, Wind } from "lucide-react";
+import { Cloud, CloudRain, CloudSnow, Droplets, Sun, Wind, RefreshCw } from "lucide-react";
 
 type WeatherData = {
   temperature: number;
@@ -17,46 +16,85 @@ type WeatherData = {
   }[];
 };
 
-// Mock weather data generator function
-const getMockWeatherData = (location: string): WeatherData => {
-  const conditions = ["Sunny", "Cloudy", "Rainy", "Snowy", "Partly Cloudy"];
-  const randomCondition = conditions[Math.floor(Math.random() * conditions.length)];
-  
-  const getIcon = (condition: string) => {
-    switch (condition) {
-      case "Sunny": return <Sun className="text-yellow-500" />;
-      case "Cloudy": return <Cloud className="text-gray-500" />;
-      case "Rainy": return <CloudRain className="text-blue-500" />;
-      case "Snowy": return <CloudSnow className="text-blue-200" />;
-      case "Partly Cloudy": return <Cloud className="text-gray-400" />;
-      default: return <Sun className="text-yellow-500" />;
+const OPENWEATHER_API_KEY = "46258b1f1bf21f8bca29fada892c85c5";
+const OPENWEATHER_BASE_URL = "https://api.openweathermap.org/data/2.5";
+
+const getWeatherIcon = (condition: string) => {
+  switch (condition.toLowerCase()) {
+    case "clear":
+      return <Sun className="text-yellow-500" />;
+    case "clouds":
+      return <Cloud className="text-gray-500" />;
+    case "rain":
+      return <CloudRain className="text-blue-500" />;
+    case "snow":
+      return <CloudSnow className="text-blue-200" />;
+    default:
+      return <Sun className="text-yellow-500" />;
+  }
+};
+
+const fetchWeatherFromAPI = async (location: string): Promise<WeatherData> => {
+  try {
+    console.log("Fetching weather for location:", location);
+    
+    // Fetch current weather
+    const currentWeatherUrl = `${OPENWEATHER_BASE_URL}/weather?q=${encodeURIComponent(location)}&appid=${OPENWEATHER_API_KEY}&units=metric`;
+    console.log("Current weather URL:", currentWeatherUrl);
+    
+    const currentWeatherResponse = await fetch(currentWeatherUrl);
+    if (!currentWeatherResponse.ok) {
+      throw new Error(`Current weather API error: ${currentWeatherResponse.status} ${currentWeatherResponse.statusText}`);
     }
-  };
-  
-  const generateForecast = () => {
-    const days = ["Today", "Tomorrow", "Day 3", "Day 4", "Day 5"];
-    return days.map(day => {
-      const condition = conditions[Math.floor(Math.random() * conditions.length)];
-      const minTemp = Math.floor(Math.random() * 15) + 10;
-      const maxTemp = minTemp + Math.floor(Math.random() * 10) + 5;
+    const currentWeatherData = await currentWeatherResponse.json();
+    console.log("Current weather data:", currentWeatherData);
+
+    // Fetch 5-day forecast
+    const forecastUrl = `${OPENWEATHER_BASE_URL}/forecast?q=${encodeURIComponent(location)}&appid=${OPENWEATHER_API_KEY}&units=metric`;
+    console.log("Forecast URL:", forecastUrl);
+    
+    const forecastResponse = await fetch(forecastUrl);
+    if (!forecastResponse.ok) {
+      throw new Error(`Forecast API error: ${forecastResponse.status} ${forecastResponse.statusText}`);
+    }
+    const forecastData = await forecastResponse.json();
+    console.log("Forecast data:", forecastData);
+
+    // Process current weather
+    const currentWeather = {
+      temperature: Math.round(currentWeatherData.main.temp),
+      condition: currentWeatherData.weather[0].main,
+      humidity: currentWeatherData.main.humidity,
+      windSpeed: Math.round(currentWeatherData.wind.speed),
+      icon: getWeatherIcon(currentWeatherData.weather[0].main),
+      forecast: [] as WeatherData["forecast"]
+    };
+
+    // Process forecast data
+    const dailyForecasts = forecastData.list.filter((item: any, index: number) => index % 8 === 0);
+    currentWeather.forecast = dailyForecasts.slice(0, 5).map((day: any, index: number) => {
+      const date = new Date(day.dt * 1000);
+      const dayName = index === 0 ? "Today" : 
+                     index === 1 ? "Tomorrow" : 
+                     date.toLocaleDateString('en-US', { weekday: 'short' });
+      
       return {
-        day,
-        condition,
-        minTemp,
-        maxTemp,
-        icon: getIcon(condition)
+        day: dayName,
+        condition: day.weather[0].main,
+        minTemp: Math.round(day.main.temp_min),
+        maxTemp: Math.round(day.main.temp_max),
+        icon: getWeatherIcon(day.weather[0].main)
       };
     });
-  };
-  
-  return {
-    temperature: Math.floor(Math.random() * 30) + 5,
-    condition: randomCondition,
-    humidity: Math.floor(Math.random() * 60) + 30,
-    windSpeed: Math.floor(Math.random() * 30),
-    icon: getIcon(randomCondition),
-    forecast: generateForecast()
-  };
+
+    return currentWeather;
+  } catch (error) {
+    console.error("Detailed error fetching weather data:", error);
+    if (error instanceof Error) {
+      throw new Error(`Weather API Error: ${error.message}`);
+    }
+    throw error;
+  }
 };
 
 interface WeatherProps {
@@ -67,18 +105,37 @@ interface WeatherProps {
 const Weather = ({ location, className = "" }: WeatherProps) => {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const fetchWeatherData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await fetchWeatherFromAPI(location);
+      setWeatherData(data);
+    } catch (err) {
+      setError("Failed to fetch weather data");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await fetchWeatherData();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   useEffect(() => {
-    // Simulate API fetch with a delay
-    setLoading(true);
-    setTimeout(() => {
-      const data = getMockWeatherData(location);
-      setWeatherData(data);
-      setLoading(false);
-    }, 800);
+    fetchWeatherData();
   }, [location]);
 
-  if (loading) {
+  if (loading && !isRefreshing) {
     return (
       <div className={`flex items-center justify-center py-6 ${className}`}>
         <div className="w-8 h-8 border-4 border-vander-teal border-t-transparent rounded-full animate-spin"></div>
@@ -86,10 +143,10 @@ const Weather = ({ location, className = "" }: WeatherProps) => {
     );
   }
 
-  if (!weatherData) {
+  if (error || !weatherData) {
     return (
       <div className={`text-center py-4 ${className}`}>
-        <p className="text-vander-gray">Weather data unavailable</p>
+        <p className="text-vander-gray">{error || "Weather data unavailable"}</p>
       </div>
     );
   }
@@ -97,7 +154,17 @@ const Weather = ({ location, className = "" }: WeatherProps) => {
   return (
     <div className={`${className}`}>
       <div className="glassmorphism rounded-2xl p-6">
-        <h2 className="text-lg font-semibold text-vander-dark mb-4">Weather Forecast</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-semibold text-vander-dark">Weather Forecast</h2>
+          <button 
+            onClick={handleRefresh}
+            className={`p-2 hover:bg-vander-teal/10 rounded-full transition-colors ${isRefreshing ? 'animate-spin' : ''}`}
+            title="Refresh weather data"
+            disabled={isRefreshing}
+          >
+            <RefreshCw size={18} className="text-vander-teal" />
+          </button>
+        </div>
         
         {/* Current weather */}
         <div className="flex items-center justify-between mb-6">

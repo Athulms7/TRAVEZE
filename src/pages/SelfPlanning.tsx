@@ -10,7 +10,8 @@ interface Message {
   content: string;
 }
 
-const API_URL = 'http://localhost:5051';
+const FLASK_API_URL = import.meta.env.VITE_FLASK_API_URL || 'http://localhost:5051';
+const NODE_API_URL = import.meta.env.VITE_NODE_API_URL || 'http://localhost:3001';
 
 const SelfPlanning = () => {
   const navigate = useNavigate();
@@ -38,7 +39,7 @@ const SelfPlanning = () => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-        const healthCheck = await fetch(`${API_URL}/health`, {
+        const healthCheck = await fetch(`${FLASK_API_URL}/health`, {
           signal: controller.signal
         });
         
@@ -46,7 +47,7 @@ const SelfPlanning = () => {
           throw new Error('Backend server is not responding');
         }
 
-        const response = await fetch(`${API_URL}/welcome`, {
+        const response = await fetch(`${FLASK_API_URL}/welcome`, {
           signal: controller.signal
         });
         
@@ -96,7 +97,7 @@ const SelfPlanning = () => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-      const response = await fetch(`${API_URL}/chat`, {
+      const response = await fetch(`${FLASK_API_URL}/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
