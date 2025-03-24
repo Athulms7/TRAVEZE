@@ -24,10 +24,10 @@ connectDB().then(() => {
     res.status(500).json({ message: 'Something went wrong!' });
   });
 
-  const PORT = process.env.PORT || 3000;
+  const port = process.env.PORT || 3001;
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on port ${PORT}`);
+  app.listen(port, '0.0.0.0', () => {
+    console.log(`Server running on port ${port}`);
   });
 }).catch(err => {
   console.error('Failed to connect to MongoDB:', err);
