@@ -1,4 +1,5 @@
 AI-Powered Travel Itinerary Planner
+
 A smart travel planning application that uses AI to generate personalized itineraries based on user preferences, destinations, and trip duration.
 
 Technologies Used
