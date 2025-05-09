@@ -1,18 +1,22 @@
-# Welcome to your Lovable project
+AI-Powered Travel Itinerary Planner
+A smart travel planning application that uses AI to generate personalized itineraries based on user preferences, destinations, and trip duration.
 
-## Project info
+Technologies Used
+Frontend: React + TypeScript
 
-**URL**: https://lovable.dev/projects/ee1c6be5-84b3-4205-8f79-51b2188a8ae5
+Styling: Tailwind CSS with shadcn-ui components
 
-## How can I edit this code?
+Build Tool: Vite
 
-There are several ways of editing your application.
+AI Integration: OpenAI API
 
-**Use Lovable**
+Development Setup
+Prerequisites
+Node.js (v16+ recommended)
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/ee1c6be5-84b3-4205-8f79-51b2188a8ae5) and start prompting.
+npm (comes with Node.js)
 
-Changes made via Lovable will be committed automatically to this repo.
+Git
 
 **Use your preferred IDE**
 
