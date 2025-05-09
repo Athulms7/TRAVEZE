@@ -1,0 +1,639 @@
+{
+    "_id": {"$oid": "507f1f77bcf86cd799439011"}, // Example ObjectId, MongoDB will generate this
+    "title": "Riyadh Exploration: A 10-Day Journey",
+    "user": {"$oid": "507f191e810c19729de860ea"}, // Replace with actual user ObjectId
+    "source": "kochi",
+    "destination": "riyadh",
+    "numberOfDays": 10,
+    "budget": {
+      "amount": 100000,
+      "currency": "INR"
+    },
+    "days": [
+      {
+        "dayNumber": 1,
+        "activities": [
+          {
+            "time": "06:00 AM",
+            "description": "Departure from Kochi International Airport (COK) to King Khalid International Airport (RUH).",
+            "cost": {
+              "amount": 25000,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "02:00 PM",
+            "description": "Arrive at Riyadh Airport, immigration and baggage claim.",
+            "cost": {
+              "amount": 0,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "03:00 PM",
+            "description": "Transfer to Hotel (Pre-booked Budget Hotel near Al Olaya District) via Uber/Careem.",
+            "cost": {
+              "amount": 800,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "04:00 PM",
+            "description": "Check-in and freshen up at the hotel.",
+            "cost": {
+              "amount": 4000,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "06:00 PM",
+            "description": "Explore Al Olaya District: Walk around, observe the modern architecture.",
+            "cost": {
+              "amount": 0,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "08:00 PM",
+            "description": "Dinner at a local Shawarma place in Al Olaya. (Try Shawarma House)",
+            "cost": {
+              "amount": 500,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "09:30 PM",
+            "description": "Relax and plan for the next day.",
+            "cost": {
+              "amount": 0,
+              "currency": "INR"
+            },
+            "notes": ""
+          }
+        ]
+      },
+      {
+        "dayNumber": 2,
+        "activities": [
+          {
+            "time": "09:00 AM",
+            "description": "Visit Masmak Fortress: Explore the historic fort, learn about Riyadh's history. (Entry Fee: Free)",
+            "cost": {
+              "amount": 100,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "11:00 AM",
+            "description": "Walk through the Deira Souq: Experience the traditional market atmosphere, browse local goods. (Transportation: Taxi/Uber)",
+            "cost": {
+              "amount": 300,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "01:00 PM",
+            "description": "Lunch at Najd Village: Enjoy traditional Saudi Arabian cuisine.",
+            "cost": {
+              "amount": 1000,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "03:00 PM",
+            "description": "Visit the National Museum of Saudi Arabia: Explore the history, culture, and art of the kingdom. (Entry Fee: SAR 10, Transportation: Taxi)",
+            "cost": {
+              "amount": 400,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "06:00 PM",
+            "description": "Explore King Abdulaziz Historical Center Park",
+            "cost": {
+              "amount": 0,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "08:00 PM",
+            "description": "Dinner at a restaurant near the museum.",
+            "cost": {
+              "amount": 600,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "09:30 PM",
+            "description": "Return to the hotel.",
+            "cost": {
+              "amount": 200,
+              "currency": "INR"
+            },
+            "notes": ""
+          }
+        ]
+      },
+      {
+        "dayNumber": 3,
+        "activities": [
+          {
+            "time": "09:00 AM",
+            "description": "Visit Al Faisaliah Tower: Enjoy panoramic views of Riyadh from the observation deck. (Entry Fee: SAR 63, Transportation: Taxi)",
+            "cost": {
+              "amount": 1500,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "11:00 AM",
+            "description": "Shopping at Al Faisaliah Mall.",
+            "cost": {
+              "amount": 2000,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "01:00 PM",
+            "description": "Lunch at a restaurant in Al Faisaliah Mall.",
+            "cost": {
+              "amount": 800,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "03:00 PM",
+            "description": "Explore Kingdom Centre Tower: Visit the Sky Bridge for another spectacular view. (Entry Fee: SAR 69, Transportation: Taxi)",
+            "cost": {
+              "amount": 1600,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "05:00 PM",
+            "description": "Shopping at Kingdom Centre Mall.",
+            "cost": {
+              "amount": 1500,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "07:00 PM",
+            "description": "Dinner at a restaurant in Kingdom Centre Mall.",
+            "cost": {
+              "amount": 800,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "09:00 PM",
+            "description": "Return to Hotel",
+            "cost": {
+              "amount": 200,
+              "currency": "INR"
+            },
+            "notes": ""
+          }
+        ]
+      },
+      {
+        "dayNumber": 4,
+        "activities": [
+          {
+            "time": "09:00 AM",
+            "description": "Day trip to Edge of the World (Jebel Fihrayn). Arrange a taxi or tour.",
+            "cost": {
+              "amount": 4000,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "11:00 AM",
+            "description": "Explore the Edge of the World",
+            "cost": {
+              "amount": 0,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "01:00 PM",
+            "description": "Picnic lunch at Edge of the World (bring your own lunch).",
+            "cost": {
+              "amount": 400,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "03:00 PM",
+            "description": "Hike around the Edge of the World",
+            "cost": {
+              "amount": 0,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "05:00 PM",
+            "description": "Start return journey to Riyadh.",
+            "cost": {
+              "amount": 0,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "07:00 PM",
+            "description": "Dinner on the way back to Riyadh.",
+            "cost": {
+              "amount": 500,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "09:00 PM",
+            "description": "Return to Hotel.",
+            "cost": {
+              "amount": 0,
+              "currency": "INR"
+            },
+            "notes": ""
+          }
+        ]
+      },
+      {
+        "dayNumber": 5,
+        "activities": [
+          {
+            "time": "09:00 AM",
+            "description": "Visit the Diriyah Historical Neighborhood (UNESCO World Heritage Site). (Entry Fee: Varies, check website).",
+            "cost": {
+              "amount": 1000,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "11:00 AM",
+            "description": "Explore At-Turaif District in Diriyah.",
+            "cost": {
+              "amount": 0,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "01:00 PM",
+            "description": "Lunch at a restaurant in Diriyah.",
+            "cost": {
+              "amount": 800,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "03:00 PM",
+            "description": "Explore the Wadi Hanifah (Valley) near Diriyah.",
+            "cost": {
+              "amount": 0,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "05:00 PM",
+            "description": "Shopping for Souvenirs.",
+            "cost": {
+              "amount": 1000,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "07:00 PM",
+            "description": "Dinner in Diriyah.",
+            "cost": {
+              "amount": 700,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "09:00 PM",
+            "description": "Return to Hotel",
+            "cost": {
+              "amount": 300,
+              "currency": "INR"
+            },
+            "notes": ""
+          }
+        ]
+      },
+      {
+        "dayNumber": 6,
+        "activities": [
+          {
+            "time": "09:00 AM",
+            "description": "Visit Riyadh Zoo. (Entry Fee: SAR 5.5).",
+            "cost": {
+              "amount": 200,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "12:00 PM",
+            "description": "Lunch at Riyadh Zoo Food Court.",
+            "cost": {
+              "amount": 500,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "02:00 PM",
+            "description": "Visit the King Abdullah Park.",
+            "cost": {
+              "amount": 0,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "04:00 PM",
+            "description": "Explore the park. Visit the lake and the dancing fountain.",
+            "cost": {
+              "amount": 0,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "06:00 PM",
+            "description": "Dinner near King Abdullah Park.",
+            "cost": {
+              "amount": 600,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "08:00 PM",
+            "description": "Watch the dancing fountain show (if available).",
+            "cost": {
+              "amount": 0,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "09:00 PM",
+            "description": "Return to Hotel.",
+            "cost": {
+              "amount": 200,
+              "currency": "INR"
+            },
+            "notes": ""
+          }
+        ]
+      },
+      {
+        "dayNumber": 7,
+        "activities": [
+          {
+            "time": "09:00 AM",
+            "description": "Visit the Heet Cave (Ain Heet) for a unique experience (Requires prior arrangement for access and potentially a guide).",
+            "cost": {
+              "amount": 2000,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "12:00 PM",
+            "description": "Picnic Lunch near Heet Cave (Bring your own lunch).",
+            "cost": {
+              "amount": 400,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "02:00 PM",
+            "description": "Explore the surrounding area of Heet Cave",
+            "cost": {
+              "amount": 0,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "04:00 PM",
+            "description": "Return to Riyadh.",
+            "cost": {
+              "amount": 0,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "06:00 PM",
+            "description": "Relax at the Hotel.",
+            "cost": {
+              "amount": 0,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "08:00 PM",
+            "description": "Dinner at a nearby restaurant.",
+            "cost": {
+              "amount": 600,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "09:30 PM",
+            "description": "Prepare for the next day.",
+            "cost": {
+              "amount": 0,
+              "currency": "INR"
+            },
+            "notes": ""
+          }
+        ]
+      },
+      {
+        "dayNumber": 8,
+        "activities": [
+          {
+            "time": "09:00 AM",
+            "description": "Visit Imam Turki bin Abdullah Grand Mosque: One of the largest mosques in Riyadh. (Dress modestly).",
+            "cost": {
+              "amount": 0,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "11:00 AM",
+            "description": "Explore the surrounding area of the mosque.",
+            "cost": {
+              "amount": 0,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "01:00 PM",
+            "description": "Lunch at a local restaurant near the mosque.",
+            "cost": {
+              "amount": 700,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "03:00 PM",
+            "description": "Visit the Al Murabba Palace.",
+            "cost": {
+              "amount": 0,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "05:00 PM",
+            "description": "Shopping for dates and local sweets.",
+            "cost": {
+              "amount": 1000,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "07:00 PM",
+            "description": "Dinner at a traditional Saudi restaurant.",
+            "cost": {
+              "amount": 800,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "09:00 PM",
+            "description": "Relax at the hotel.",
+            "cost": {
+              "amount": 0,
+              "currency": "INR"
+            },
+            "notes": ""
+          }
+        ]
+      },
+      {
+        "dayNumber": 9,
+        "activities": [
+          {
+            "time": "09:00 AM",
+            "description": "Visit the Water Splash Park (if open seasonally). Check for availability and timings.",
+            "cost": {
+              "amount": 1500,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "12:00 PM",
+            "description": "Lunch at Water Splash Park.",
+            "cost": {
+              "amount": 500,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "02:00 PM",
+            "description": "Alternatively, if Water Splash Park is closed, visit another mall for indoor activities (e.g., Magic Planet).",
+            "cost": {
+              "amount": 1000,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "05:00 PM",
+            "description": "Last-minute souvenir shopping.",
+            "cost": {
+              "amount": 1000,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "07:00 PM",
+            "description": "Farewell Dinner at a fancy restaurant.",
+            "cost": {
+              "amount": 2000,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "09:00 PM",
+            "description": "Pack your bags and prepare for departure.",
+            "cost": {
+              "amount": 0,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "10:00 PM",
+            "description": "Rest at Hotel.",
+            "cost": {
+              "amount": 0,
+              "currency": "INR"
+            },
+            "notes": ""
+          }
+        ]
+      },
+      {
+        "dayNumber": 10,
+        "activities": [
+          {
+            "time": "07:00 AM",
+            "description": "Check out from the hotel.",
+            "cost": {
+              "amount": 0,
+              "currency": "INR"
+            },
+            "notes": ""
+          },
+          {
+            "time": "07:30 AM",
+            "description": "Transfer to King Khalid International Airport (RUH) via Uber/C

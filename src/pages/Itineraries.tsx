@@ -1,5 +1,4 @@
 
-import React from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Calendar, MapPin, Clock } from "lucide-react";
 import BackgroundImage from "../components/BackgroundImage";
@@ -11,7 +10,7 @@ const sampleItineraries = [
     title: "Paris Adventure",
     location: "Paris, France",
     duration: "5 days",
-    image: "https://images.unsplash.com/photo-1502602898657-4654415f7ce4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
+    image: "https://images.unsplash.com/photo-1431274172761-fca41d930114?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
     startDate: "June 15, 2023",
   },
   {
