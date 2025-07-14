@@ -1,6 +1,6 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users, UserRound, Map, Compass, Palmtree, Luggage } from "lucide-react";
+import { Compass, Palmtree, Luggage } from "lucide-react";
 import BackgroundImage from "../components/BackgroundImage";
 import BackButton from "../components/BackButton";
 import { useToast } from "@/components/ui/use-toast";

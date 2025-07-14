@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import User from '../models/user.js';
+import {User} from '../models/user.js';
 
 // Generate JWT Token
 const generateToken = (id) => {
@@ -87,3 +87,4 @@ export const getProfile = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 }; 
+

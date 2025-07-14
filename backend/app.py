@@ -11,7 +11,12 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app, resources={
     r"/*": {
-        "origins": ["http://localhost:8080", "http://localhost:3000", "http://localhost:5173"],
+        "origins": [
+            "http://localhost:8080",
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "https://*.vercel.app"  # Allow all Vercel deployments
+        ],
         "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type"]
     }
@@ -239,4 +244,5 @@ def health_check():
         }), 500
 
 if __name__ == '__main__':
+    # For local development
     app.run(debug=True, port=5051) 

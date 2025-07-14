@@ -71,7 +71,7 @@ const fetchWeatherFromAPI = async (location: string): Promise<WeatherData> => {
     };
 
     // Process forecast data
-    const dailyForecasts = forecastData.list.filter((item: any, index: number) => index % 8 === 0);
+    const dailyForecasts = forecastData.list.filter((_item: any, index: number) => index % 8 === 0);
     currentWeather.forecast = dailyForecasts.slice(0, 5).map((day: any, index: number) => {
       const date = new Date(day.dt * 1000);
       const dayName = index === 0 ? "Today" : 

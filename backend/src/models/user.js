@@ -48,4 +48,29 @@ userSchema.methods.matchPassword = async function(enteredPassword) {
 
 const User = mongoose.model('User', userSchema);
 
-export default User; 
+const ActivitySchema = new mongoose.Schema({
+    time: String,
+    activity: String
+});
+
+const DaySchema = new mongoose.Schema({
+    day: Number,
+    activities: [ActivitySchema]
+});
+
+const ItinerarySchema = new mongoose.Schema({
+    title: { type: String, required: true },
+    source: { type: String, required: true },
+    destination: { type: String, required: true },
+    numberOfDays: { type: Number, required: true },
+    budget: { type: Number, required: true },
+    days: [DaySchema],
+    backpackItems: [String],
+    userid: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    image:{type:String,required:true}
+}, { timestamps: true });
+
+const Itinerary = mongoose.model('itineraries', ItinerarySchema);
+
+
+export { User, Itinerary };
