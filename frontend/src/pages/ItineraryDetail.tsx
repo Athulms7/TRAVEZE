@@ -356,6 +356,79 @@
 //   ];
  
 
+
+
+import { useParams, useNavigate } from "react-router-dom";
+import { ArrowLeft, Calendar, MapPin, Wallet, Coffee, Briefcase } from "lucide-react";
+import BackgroundImage from "../components/BackgroundImage";
+import Weather from "../components/Weather";
+// import Map from "../components/Map";
+import { useEffect, useState } from "react";
+
+const ItineraryDetail = () => {
+  const { itineraryId } = useParams<{ itineraryId: string }>();
+  const navigate = useNavigate();
+  const [itinerary, setItinerary] = useState([])
+
+  useEffect(() => {
+    getData();
+  }, [itineraryId]);
+
+  async function getData() {
+    const token = localStorage.getItem("token") || "";
+    try {
+      const resp = await fetch(`http://localhost:3000/api/auth/it/${itineraryId}`, {
+        method: "POST",
+        headers: {
+          authorization: token
+        }
+      });
+      const data = await resp.json();
+      console.log(data.itenaries)
+      if (data?.itenaries) {
+        setItinerary(data.itenaries);
+        console.log(data)
+      }
+
+    } catch (error) {
+      console.error(error);
+    }
+  }
+console.log(itineraryId,itinerary)
+  if (!itineraryId || !itinerary) {
+    return (
+      <div className="min-h-screen bg-vander-light flex items-center justify-center">
+        <div className="text-center p-8">
+          <h2 className="text-2xl font-bold text-vander-dark mb-4">Itinerary Not Found</h2>
+          <p className="text-vander-gray mb-6">The itinerary you're looking for doesn't exist or has been removed.</p>
+          <button
+            onClick={() => navigate("/itineraries")}
+            className="Traveze-button px-4 py-2"
+          >
+            Back to Itineraries
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+
+ return (
+  <div className="min-h-screen bg-vander-light">
+    <BackgroundImage />
+    <div className="container mx-auto py-8 px-4 relative z-10 space-y-4">
+      {itinerary.map((u: any, index: number) => (
+        <Display key={index} itinerary={u} />
+      ))}
+    </div>
+  </div>
+);
+
+}
+export default ItineraryDetail;
+
+
+
 function Display({ itinerary }: any) {
   const navigate = useNavigate();
 
@@ -464,72 +537,3 @@ function Display({ itinerary }: any) {
     </div>
   );
 }
-
-import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Calendar, MapPin, Wallet, Coffee, Briefcase } from "lucide-react";
-import BackgroundImage from "../components/BackgroundImage";
-import Weather from "../components/Weather";
-// import Map from "../components/Map";
-import { useEffect, useState } from "react";
-
-const ItineraryDetail = () => {
-  const { itineraryId } = useParams<{ itineraryId: string }>();
-  const navigate = useNavigate();
-  const [itinerary, setItinerary] = useState([])
-
-  useEffect(() => {
-    getData();
-  }, [itineraryId]);
-
-  async function getData() {
-    const token = localStorage.getItem("token") || "";
-    try {
-      const resp = await fetch(`http://localhost:3000/api/auth/it/${itineraryId}`, {
-        method: "POST",
-        headers: {
-          authorization: token
-        }
-      });
-      const data = await resp.json();
-      console.log(data.itenaries)
-      if (data?.itenaries) {
-        setItinerary(data.itenaries);
-        console.log(data)
-      }
-
-    } catch (error) {
-      console.error(error);
-    }
-  }
-console.log(itineraryId,itinerary)
-  if (!itineraryId || !itinerary) {
-    return (
-      <div className="min-h-screen bg-vander-light flex items-center justify-center">
-        <div className="text-center p-8">
-          <h2 className="text-2xl font-bold text-vander-dark mb-4">Itinerary Not Found</h2>
-          <p className="text-vander-gray mb-6">The itinerary you're looking for doesn't exist or has been removed.</p>
-          <button
-            onClick={() => navigate("/itineraries")}
-            className="Traveze-button px-4 py-2"
-          >
-            Back to Itineraries
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-
- return (
-  <div className="min-h-screen bg-vander-light">
-    <BackgroundImage />
-    <div className="container mx-auto py-8 px-4 relative z-10 space-y-4">
-      {itinerary.map((u: any, index: number) => (
-        <Display key={index} itinerary={u} />
-      ))}
-    </div>
-  </div>
-);
-
-}
-export default ItineraryDetail;
