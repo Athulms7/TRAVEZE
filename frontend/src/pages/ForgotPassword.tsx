@@ -55,7 +55,7 @@ const ForgotPassword = () => {
 
   return (
     <div className="min-h-screen w-full overflow-x-hidden relative page-transition">
-      <BackgroundImage />
+      <BackgroundImage/>
       
       <div className="relative z-20 min-h-screen flex flex-col pt-20 pb-8 px-6">
         <div className="flex justify-center mb-4 animate-fade-in">
