@@ -1,12 +1,12 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from groq import Groq
+import jwt
 import re
 from pymongo import MongoClient
 from bson import ObjectId
 from dotenv import load_dotenv
 import os
-import json
 
 
 load_dotenv()
@@ -15,8 +15,8 @@ groq_api_key = os.getenv("GROQ_API_KEY")
 
 groq = Groq(api_key=groq_api_key)
 
-client = MongoClient("mongodb://localhost:27017/")
-db = client["tripwish"]
+client = MongoClient(os.getenv("MONGODB_URI", "mongodb://localhost:27017/tripwish"))
+db = client.get_default_database()
 collection = db["itineraries"]
 
 
@@ -24,11 +24,31 @@ app = Flask(__name__)
 CORS(app)
 
 
+def get_authenticated_user_id():
+    authorization = request.headers.get("Authorization", "")
+    token = re.sub(r"^Bearer\s+", "", authorization, flags=re.IGNORECASE).strip()
+    jwt_secret = os.getenv("JWT_SECRET")
+    if not jwt_secret:
+        app.logger.error("JWT_SECRET is not configured.")
+        return None, (jsonify({"error": "Authentication is not configured."}), 500)
+    if not token:
+        return None, (jsonify({"error": "Authentication is required."}), 401)
 
-def generate_itinerary(destination, days, budget, current_location):
+    try:
+        decoded_token = jwt.decode(token, jwt_secret, algorithms=["HS256"])
+    except jwt.InvalidTokenError:
+        return None, (jsonify({"error": "Authentication token is invalid or expired."}), 401)
+
+    user_id = decoded_token.get("id")
+    if not isinstance(user_id, str) or not ObjectId.is_valid(user_id):
+        return None, (jsonify({"error": "Authentication token does not contain a valid user ID."}), 401)
+    return user_id, None
+
+
+def generate_itinerary(destination, days, budget, current_location, mood):
     prompt = (
-        f"Create a {days}-day itinerary for a trip to {destination} from {current_location} "
-        f"with a budget of {budget} INR. "
+        f"Create a {days}-day itinerary for a {mood} trip to {destination} from {current_location} "
+        f"with a total budget of {budget} INR. "
         "Format the itinerary EXACTLY like this:\n\n"
         "Day 1\n"
         "08:00 AM - Activity\n"
@@ -47,129 +67,164 @@ def generate_itinerary(destination, days, budget, current_location):
         "06:30 PM - Activity\n"
         "08:00 PM - Activity\n\n"
         "Continue this format for all days.\n"
+        "Use exactly the requested number of days. Each activity must have a time in HH:MM AM/PM format "
+        "followed by ' - ' and the activity. Do not use Markdown formatting.\n"
         "At the end, add:\nBackpack Items: item1, item2, item3"
     )
 
-    try:
-        response = groq.chat.completions.create(
-            model="llama3-70b-8192",
-            messages=[
-                {"role": "system", "content": "You are a helpful travel assistant."},
-                {"role": "user", "content": prompt}
-            ]
-        )
-        return response.choices[0].message.content
-    except Exception as e:
-        return f"Error: {str(e)}"
+    response = groq.chat.completions.create(
+        model="openai/gpt-oss-120b",
+        messages=[
+            {"role": "system", "content": "You are a helpful travel assistant."},
+            {"role": "user", "content": prompt}
+        ]
+    )
+    itinerary = response.choices[0].message.content
+    if not itinerary or not itinerary.strip():
+        raise ValueError("The AI provider returned an empty itinerary.")
+    return itinerary
 
 def generate_destination_image_url(destination):
-   
-    return f"https://source.unsplash.com/1600x900/?{destination.replace(' ', '+')},travel"
+    return "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1600&q=80"
 
-
-def parse_itinerary(text, title, source, destination, numberOfDays, budget, user_id):
+def parse_itinerary(text, title, source, destination, number_of_days, budget, user_id):
     days = []
     backpack_items = []
     image_url = generate_destination_image_url(destination)
-    lines = text.strip().split("\n")
     current_day = None
     activities = []
 
-    for line in lines:
-        line = line.strip()
-        if re.match(r"^Day \d+", line):
+    for raw_line in text.splitlines():
+        line = re.sub(r"^\s*(?:[-*#>]\s*)+", "", raw_line).strip().strip("*_")
+        day_match = re.match(r"^Day\s+(\d+)\b", line, re.IGNORECASE)
+        backpack_match = re.match(r"^Backpack Items\s*:\s*(.*)$", line, re.IGNORECASE)
+        activity_match = re.match(
+            r"^(\d{1,2}:\d{2}\s*(?:AM|PM))\s*[-–—:]\s*(.+)$",
+            line,
+            re.IGNORECASE,
+        )
+
+        if day_match:
             if current_day:
                 days.append({"day": current_day, "activities": activities})
-            current_day = int(re.findall(r'\d+', line)[0])
+            current_day = int(day_match.group(1))
             activities = []
-        elif "Backpack Items:" in line:
-            items = line.split("Backpack Items:")[1].split(",")
-            backpack_items = [item.strip() for item in items]
-        elif re.match(r'^\d{1,2}:\d{2} (AM|PM) - ', line):
-            time, activity = line.split(" - ", 1)
-            activities.append({"time": time.strip(), "activity": activity.strip()})
+        elif backpack_match:
+            backpack_items = [item.strip() for item in backpack_match.group(1).split(",") if item.strip()]
+        elif activity_match and current_day:
+            activities.append({
+                "time": activity_match.group(1).upper(),
+                "activity": activity_match.group(2).strip(),
+            })
 
     if current_day:
         days.append({"day": current_day, "activities": activities})
 
-   
-    if isinstance(user_id, dict):
-        user_object_id = ObjectId(user_id["id"])
-    elif isinstance(user_id, str):
-        user_object_id = ObjectId(user_id)
-    else:
-        raise ValueError("Invalid user ID format")
+    expected_days = int(number_of_days)
+    if [day["day"] for day in days] != list(range(1, expected_days + 1)):
+        raise ValueError("The generated itinerary does not contain every requested day.")
+    if any(not day["activities"] for day in days):
+        raise ValueError("The generated itinerary contains a day with no activities.")
+
+    user_id_value = user_id.get("id") if isinstance(user_id, dict) else user_id
+    if not isinstance(user_id_value, str) or not ObjectId.is_valid(user_id_value):
+        raise ValueError("Invalid user ID.")
+    user_object_id = ObjectId(user_id_value)
 
     return {
         "title": title,
         "source": source,
         "destination": destination,
-        "numberOfDays": int(numberOfDays),
+        "numberOfDays": expected_days,
         "budget": int(budget),
         "days": days,
         "backpackItems": backpack_items,
         "userid": user_object_id,
-        "image":image_url
+        "image": image_url
     }
 
 
 
 @app.route("/generate", methods=["POST"])
 def generate_and_store():
-    data = request.get_json()
-    required = ["mood", "current_location", "days", "budget", "destination", "user"]
-    missing = [f for f in required if not data.get(f)]
+    user_id, auth_error = get_authenticated_user_id()
+    if auth_error:
+        return auth_error
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "Request body must be a JSON object."}), 400
+
+    required = ["mood", "current_location", "days", "budget", "destination"]
+    missing = [field for field in required if not data.get(field)]
     if missing:
         return jsonify({"error": f"Missing fields: {', '.join(missing)}"}), 400
 
-    user_data = data["user"]
-    if isinstance(user_data, str):
-        user_data = json.loads(user_data)
+    text_fields = ["mood", "current_location", "destination"]
+    if any(not isinstance(data[field], str) or not data[field].strip() for field in text_fields):
+        return jsonify({"error": "Mood, current location, and destination must be text."}), 400
 
-    title = f"{data['destination'].title()} Exploration: A {data['days']}-Day Journey"
-    raw_text = generate_itinerary(data["destination"], data["days"], data["budget"], data["current_location"])
+    try:
+        days = int(data["days"])
+        budget = int(data["budget"])
+    except (TypeError, ValueError):
+        return jsonify({"error": "Days and budget must be positive whole numbers."}), 400
+    if days <= 0 or budget <= 0:
+        return jsonify({"error": "Days and budget must be positive whole numbers."}), 400
 
-    if raw_text.startswith("Error:"):
-        return jsonify({"error": raw_text}), 500
+    title = f"{data['destination'].title()} Exploration: A {days}-Day Journey"
+    try:
+        raw_text = generate_itinerary(
+            data["destination"],
+            days,
+            budget,
+            data["current_location"],
+            data["mood"],
+        )
+    except Exception:
+        app.logger.exception("Itinerary generation failed.")
+        return jsonify({"error": "Itinerary generation failed. Please try again."}), 502
 
-    parsed = parse_itinerary(
-        raw_text,
-        title,
-        data["current_location"],
-        data["destination"],
-        data["days"],
-        data["budget"],
-        user_data
-    )
+    try:
+        parsed = parse_itinerary(
+            raw_text,
+            title,
+            data["current_location"],
+            data["destination"],
+            days,
+            budget,
+            user_id,
+        )
+    except (TypeError, ValueError) as error:
+        app.logger.warning("Generated itinerary could not be parsed: %s", error)
+        return jsonify({"error": "The generated itinerary was incomplete. Please try again."}), 502
 
-    inserted = collection.insert_one(parsed)
+    try:
+        inserted = collection.insert_one(parsed)
+    except Exception:
+        app.logger.exception("Generated itinerary could not be saved.")
+        return jsonify({"error": "The itinerary could not be saved. Please try again."}), 500
+
     parsed["_id"] = str(inserted.inserted_id)
     parsed["userid"] = str(parsed["userid"])
-
     return jsonify(parsed), 200
 
 
 @app.route("/itineraries", methods=["GET"])
 def get_user_itineraries():
-    try:
-        user_id = request.headers.get("id")
-        if not user_id:
-            return jsonify({"error": "Missing ID in headers"}), 400
+    user_id, auth_error = get_authenticated_user_id()
+    if auth_error:
+        return auth_error
 
-        cursor = collection.find({"userid": ObjectId(user_id)})
-        results = []
-        for doc in cursor:
+    try:
+        results = list(collection.find({"userid": ObjectId(user_id)}))
+        for doc in results:
             doc["_id"] = str(doc["_id"])
             doc["userid"] = str(doc["userid"])
-            results.append(doc)
-
-        if not results:
-            return jsonify({"error": "No itineraries found for this user"}), 404
-
         return jsonify(results), 200
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        app.logger.exception("Failed to load itineraries.")
+        return jsonify({"error": "Unable to load itineraries."}), 500
 
 
 

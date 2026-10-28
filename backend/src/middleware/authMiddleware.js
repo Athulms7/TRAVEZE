@@ -2,28 +2,21 @@ import jwt from 'jsonwebtoken';
 import {User} from '../models/user.js';
 
 export const protect = async (req, res, next) => {
-  let token;
-
-  if (
-    req.headers.authorization
-  ) {
-    try {
-      
-      token = req.headers.authorization;
-
-   
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-      req.user = await User.findById(decoded.id);
-
-      next();
-    } catch (error) {
-      res.status(401).json({ message: 'Not authorized, token failed' });
-    }
+  const authorization = req.headers.authorization;
+  if (!authorization) {
+    return res.status(401).json({ message: 'Not authorized, no token' });
   }
 
-  if (!token) {
-    res.status(401).json({ message: 'Not authorized, no token' });
+  const token = authorization.replace(/^Bearer\s+/i, '');
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = await User.findById(decoded.id);
+    if (!req.user) {
+      return res.status(401).json({ message: 'Not authorized, user not found' });
+    }
+    return next();
+  } catch (error) {
+    return res.status(401).json({ message: 'Not authorized, token failed' });
   }
 };
 
