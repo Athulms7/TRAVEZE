@@ -359,43 +359,65 @@
 
 
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Calendar, MapPin, Wallet, Coffee, Briefcase } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Wallet, Coffee, Briefcase, Navigation } from "lucide-react";
 import BackgroundImage from "../components/BackgroundImage";
 import Weather from "../components/Weather";
 // import Map from "../components/Map";
 import { useEffect, useState } from "react";
 
+interface ItineraryActivity {
+  time: string;
+  activity: string;
+}
+
+interface ItineraryDay {
+  day: number;
+  activities: ItineraryActivity[];
+}
+
+interface ItineraryRecord {
+  _id: string;
+  title: string;
+  source: string;
+  destination: string;
+  numberOfDays: number;
+  budget: number;
+  days: ItineraryDay[];
+  backpackItems: string[];
+  image: string;
+}
+
 const ItineraryDetail = () => {
   const { itineraryId } = useParams<{ itineraryId: string }>();
   const navigate = useNavigate();
-  const [itinerary, setItinerary] = useState([])
+  const [itinerary, setItinerary] = useState<ItineraryRecord[]>([]);
 
   useEffect(() => {
+    async function getData(): Promise<void> {
+      const token = localStorage.getItem("token") || "";
+      try {
+        const resp = await fetch(`http://localhost:3000/api/auth/it/${itineraryId}`, {
+          method: "GET",
+          headers: {
+            authorization: token
+          }
+        });
+        const data = await resp.json();
+        if (resp.ok && data?.itinerary) {
+          setItinerary([data.itinerary]);
+        } else {
+          setItinerary([]);
+        }
+      } catch (error) {
+        console.error(error);
+        setItinerary([]);
+      }
+    }
+
     getData();
   }, [itineraryId]);
 
-  async function getData() {
-    const token = localStorage.getItem("token") || "";
-    try {
-      const resp = await fetch(`http://localhost:3000/api/auth/it/${itineraryId}`, {
-        method: "POST",
-        headers: {
-          authorization: token
-        }
-      });
-      const data = await resp.json();
-      console.log(data.itenaries)
-      if (data?.itenaries) {
-        setItinerary(data.itenaries);
-        console.log(data)
-      }
-
-    } catch (error) {
-      console.error(error);
-    }
-  }
-console.log(itineraryId,itinerary)
-  if (!itineraryId || !itinerary) {
+  if (!itineraryId || itinerary.length === 0) {
     return (
       <div className="min-h-screen bg-vander-light flex items-center justify-center">
         <div className="text-center p-8">
@@ -417,7 +439,7 @@ console.log(itineraryId,itinerary)
   <div className="min-h-screen bg-vander-light">
     <BackgroundImage />
     <div className="container mx-auto py-8 px-4 relative z-10 space-y-4">
-      {itinerary.map((u: any, index: number) => (
+      {itinerary.map((u, index) => (
         <Display key={index} itinerary={u} />
       ))}
     </div>
@@ -428,8 +450,16 @@ console.log(itineraryId,itinerary)
 export default ItineraryDetail;
 
 
+function getMapsDirectionsUrl(origin: string, destination: string): string {
+  const params = new URLSearchParams({
+    api: "1",
+    origin,
+    destination,
+  });
+  return `https://www.google.com/maps/dir/?${params.toString()}`;
+}
 
-function Display({ itinerary }: any) {
+function Display({ itinerary }: { itinerary: ItineraryRecord }) {
   const navigate = useNavigate();
 
   return (
@@ -475,7 +505,7 @@ function Display({ itinerary }: any) {
             <div className="glassmorphism rounded-2xl p-6 mb-8">
               <h2 className="text-xl font-semibold text-vander-dark mb-4">Daily Plan</h2>
               <div className="space-y-8">
-                {itinerary.days.map((day: any, dayIndex: number) => (
+                {itinerary.days.map((day, dayIndex) => (
                   <div key={dayIndex}>
                     <div className="flex items-center mb-4">
                       <div className="bg-vander-blue/10 text-vander-blue font-semibold rounded-lg px-3 py-1 mr-3">
@@ -483,17 +513,33 @@ function Display({ itinerary }: any) {
                       </div>
                     </div>
                     <div className="pl-4 border-l-2 border-vander-blue/20 space-y-4">
-                      {day.activities.map((activity: any, actIndex: number) => (
-                        <div key={actIndex} className="flex items-start">
-                          <div className="bg-white p-2 rounded-lg shadow-sm mr-4 flex-shrink-0">
-                            <Coffee size={18} className="text-vander-teal" />
+                      {day.activities.map((activity, actIndex) => {
+                        const origin = actIndex === 0
+                          ? itinerary.destination
+                          : day.activities[actIndex - 1].activity;
+
+                        return (
+                          <div key={actIndex} className="flex items-start">
+                            <div className="bg-white p-2 rounded-lg shadow-sm mr-4 flex-shrink-0">
+                              <Coffee size={18} className="text-vander-teal" />
+                            </div>
+                            <div>
+                              <div className="text-vander-dark font-medium">{activity.time}</div>
+                              <div className="text-vander-gray">{activity.activity}</div>
+                              <a
+                                href={getMapsDirectionsUrl(origin, activity.activity)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label={`Open directions from ${origin} to ${activity.activity} in Google Maps`}
+                                className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-vander-teal/20 bg-white/70 px-3 py-1.5 text-sm font-medium text-vander-teal transition-colors hover:bg-vander-teal/10"
+                              >
+                                <Navigation size={15} />
+                                Directions from {origin}
+                              </a>
+                            </div>
                           </div>
-                          <div>
-                            <div className="text-vander-dark font-medium">{activity.time}</div>
-                            <div className="text-vander-gray">{activity.activity}</div>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 ))}

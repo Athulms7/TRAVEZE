@@ -1,13 +1,25 @@
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { MapPin, Clock, Train, Calendar, Star, Info, Image, ArrowUpRight, Bookmark, BookmarkCheck } from "lucide-react";
+import { MapPin, Clock, Train, Calendar, Star, Info, Image, Bookmark, BookmarkCheck } from "lucide-react";
 import BackgroundImage from "../components/BackgroundImage";
 import BackButton from "../components/BackButton";
 import Map from "../components/Map";
 import Weather from "../components/Weather";
 import { addToSavedPlaces, getSavedPlaces, removeFromSavedPlaces, SavedPlace } from "../components/SavedPlaces";
 import { useToast } from "@/hooks/use-toast";
+
+interface TouristPlace {
+  name: string;
+  location: string;
+  description: string;
+  distance: string;
+  bestTime: string;
+  rating: number;
+  openingHours: string;
+  entryFee: string;
+  images: string[];
+}
 
 const touristPlacesData = {
   "paris-eiffel": {
@@ -82,7 +94,7 @@ const placeIdToNumericId: Record<string, number> = {
 const PlaceDetails = () => {
   const { placeId } = useParams<{ placeId: string }>();
   const navigate = useNavigate();
-  const [placeData, setPlaceData] = useState<any>(null);
+  const [placeData, setPlaceData] = useState<TouristPlace | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isSaved, setIsSaved] = useState(false);
@@ -191,7 +203,7 @@ const PlaceDetails = () => {
           />
           
           <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
-            {placeData.images.map((img, index) => (
+            {placeData.images.map((_, index) => (
               <button 
                 key={index}
                 onClick={() => setActiveImageIndex(index)}
@@ -318,9 +330,12 @@ const PlaceDetails = () => {
           <div className="mb-6">
             <h2 className="text-lg font-semibold text-vander-dark mb-3">Location</h2>
             <Map 
-              location={placeData.location} 
-              name={placeData.name} 
-              className="h-64 sm:h-72 md:h-80 w-full"
+              places={[{
+                name: placeData.name,
+                location: placeData.location,
+                type: "activity",
+              }]}
+              center={placeData.location}
             />
           </div>
         </div>

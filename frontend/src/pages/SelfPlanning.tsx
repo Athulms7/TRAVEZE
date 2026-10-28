@@ -5,26 +5,18 @@ import BackgroundImage from "../components/BackgroundImage";
 import Logo from "../components/Logo";
 import BackButton from "../components/BackButton";
 
-
-
-
 const SelfPlanning = () => {
   const navigate = useNavigate();
   const [itinerary, setItinerary] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-const user = localStorage.getItem("user");
-
-
-
   const [formData, setFormData] = useState({
     mood: '',
     current_location: '',
     days: '',
     budget: '',
-    destination: '',
-    user:user
+    destination: ''
   });
 
   const scrollToBottom = () => {
@@ -40,31 +32,29 @@ const user = localStorage.getItem("user");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-   
     e.preventDefault();
+    if (isLoading) return;
     setIsLoading(true);
     setItinerary("");
 
     try {
-      const response = await fetch(`http://localhost:5000/generate`, {
+      const response = await fetch("http://localhost:5000/generate", {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          authorization: localStorage.getItem("token") || "",
         },
         body: JSON.stringify(formData)
       });
-
-      if (!response) {
-        throw new Error("Failed to generate itinerary");
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to generate itinerary.");
       }
 
-      const text = await response.text();
-
-      setItinerary(text);
       navigate("/itineraries");
     } catch (error) {
       console.error("Error generating itinerary:", error);
-      setItinerary("Error: Unable to generate itinerary.");
+      setItinerary(error instanceof Error ? error.message : "Unable to generate itinerary.");
     } finally {
       setIsLoading(false);
     }
@@ -163,7 +153,6 @@ const user = localStorage.getItem("user");
               type="submit"
               disabled={isLoading}
               className="w-full bg-vander-green text-white rounded-lg px-4 py-2 hover:bg-vander-teal transition-colors disabled:opacity-50"
-              onClick={handleSubmit}
             >
               {isLoading ? 'Planning...' : 'Generate Itinerary'}
             </button>

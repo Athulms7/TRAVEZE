@@ -1,44 +1,73 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Calendar, MapPin, Clock } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, Wallet, Trash2 } from "lucide-react";
 import BackgroundImage from "../components/BackgroundImage";
 import { useEffect, useState } from "react";
 
-// Sample itinerary data
-const sampleItineraries = [
-  {
-    id: "paris-2023",
-    title: "Paris Adventure",
-    location: "Paris, France",
-    duration: "5 days",
-    image:
-      "https://images.unsplash.com/photo-1431274172761-fca41d930114?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
-    startDate: "June 15, 2023",
-  },
-
-];
-
-
+interface ItinerarySummary {
+  _id: string;
+  image: string;
+  destination: string;
+  title: string;
+  numberOfDays: number;
+  budget: number;
+}
 
 const Itineraries = () => {
-  const [itineraries, setItinerary] = useState([]);
+  const [itineraries, setItineraries] = useState<ItinerarySummary[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const navigate = useNavigate();
-  async function getHandler(): Promise<void> {
-    const token: any =localStorage.getItem("token")
 
-    const resp=await fetch("http://localhost:3000/api/auth/it",{
-      method:"POST",
-      headers:{
-        authorization:token
-      }
-    })
-    const data = await resp.json();
-    setItinerary(data.itenaries);
-    console.log(itineraries)
-  }
   useEffect(() => {
-    getHandler();
+    async function getItineraries(): Promise<void> {
+      try {
+        const response = await fetch("http://localhost:3000/api/auth/it", {
+          method: "POST",
+          headers: {
+            authorization: localStorage.getItem("token") || "",
+          },
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.message || "Unable to load itineraries.");
+        }
+        setItineraries(Array.isArray(data.itineraries) ? data.itineraries : []);
+      } catch (requestError) {
+        setError(requestError instanceof Error ? requestError.message : "Unable to load itineraries.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    getItineraries();
   }, []);
-  console.log(itineraries);
+
+  async function deleteItinerary(itineraryId: string): Promise<void> {
+    if (!window.confirm("Delete this itinerary? This action cannot be undone.")) {
+      return;
+    }
+
+    setDeletingId(itineraryId);
+    setError("");
+    try {
+      const response = await fetch(`http://localhost:3000/api/auth/it/${itineraryId}`, {
+        method: "DELETE",
+        headers: {
+          authorization: localStorage.getItem("token") || "",
+        },
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Unable to delete itinerary.");
+      }
+      setItineraries((current) => current.filter((itinerary) => itinerary._id !== itineraryId));
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to delete itinerary.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-vander-light">
@@ -59,21 +88,25 @@ const Itineraries = () => {
         </h1>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {itineraries.map((itinerary:{_id:string,image:string,destination:string,title:string,numberOfDays:string,}) => (
-            <div
+          {itineraries.map((itinerary) => (
+            <article
               key={itinerary._id}
-              onClick={() => navigate(`/itinerary/${itinerary._id}`)}
-              className="glassmorphism rounded-xl overflow-hidden cursor-pointer hover:shadow-lg transition-shadow group"
+              className="glassmorphism rounded-xl overflow-hidden hover:shadow-lg transition-shadow group"
             >
-              <div className="h-48 relative overflow-hidden">
+              <button
+                type="button"
+                onClick={() => navigate(`/itinerary/${itinerary._id}`)}
+                className="relative block h-48 w-full overflow-hidden text-left"
+                aria-label={`View ${itinerary.title}`}
+              >
                 <img
                   src={itinerary.image}
-                  alt={itinerary.destination}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  alt=""
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                 <div className="absolute bottom-4 left-4 right-4">
-                  <h3 className="text-white text-xl font-semibold mb-1">
+                  <h3 className="mb-1 text-xl font-semibold text-white">
                     {itinerary.title}
                   </h3>
                   <div className="flex items-center text-white/80">
@@ -81,59 +114,38 @@ const Itineraries = () => {
                     <span className="text-sm">{itinerary.destination}</span>
                   </div>
                 </div>
-              </div>
-              <div className="p-4">
+              </button>
+              <div className="flex items-center justify-between gap-3 p-4">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center text-vander-dark">
-                    <Calendar size={16} className="mr-1" />
-                    <span className="text-sm">{sampleItineraries[0].startDate}</span>
+                    <Wallet size={16} className="mr-1" />
+                    <span className="text-sm">₹ {itinerary.budget}</span>
                   </div>
                   <div className="flex items-center text-vander-teal">
                     <Clock size={16} className="mr-1" />
                     <span className="text-sm">{itinerary.numberOfDays} Days</span>
                   </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => deleteItinerary(itinerary._id)}
+                  disabled={deletingId !== null}
+                  className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-red-200 bg-white/70 px-3 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  aria-label={`Delete ${itinerary.title}`}
+                  title="Delete itinerary"
+                >
+                  <Trash2 size={16} />
+                  {deletingId === itinerary._id ? "Deleting..." : "Delete"}
+                </button>
               </div>
-            </div>
-          ))}
-          {sampleItineraries.map((itinerary) => (
-            <div
-              key={itinerary.id}
-              onClick={() => navigate(`/itinerary/${itinerary.id}`)}
-              className="glassmorphism rounded-xl overflow-hidden cursor-pointer hover:shadow-lg transition-shadow group"
-            >
-              <div className="h-48 relative overflow-hidden">
-                <img
-                  src={itinerary.image}
-                  alt={itinerary.location}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                <div className="absolute bottom-4 left-4 right-4">
-                  <h3 className="text-white text-xl font-semibold mb-1">
-                    {itinerary.title}
-                  </h3>
-                  <div className="flex items-center text-white/80">
-                    <MapPin size={16} className="mr-1" />
-                    <span className="text-sm">{itinerary.location}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="p-4">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center text-vander-dark">
-                    <Calendar size={16} className="mr-1" />
-                    <span className="text-sm">{sampleItineraries[0].startDate}</span>
-                  </div>
-                  <div className="flex items-center text-vander-teal">
-                    <Clock size={16} className="mr-1" />
-                    <span className="text-sm">{itinerary.duration} Days</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+            </article>
           ))}
         </div>
+        {isLoading && <p className="text-center text-vander-gray">Loading itineraries...</p>}
+        {!isLoading && error && <p role="alert" className="text-center text-red-600">{error}</p>}
+        {!isLoading && !error && itineraries.length === 0 && (
+          <p className="text-center text-vander-gray">No saved itineraries yet. Generate a trip to see it here.</p>
+        )}
       </div>
     </div>
   );
