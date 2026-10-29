@@ -12,6 +12,13 @@ import {
 import BackButton from "../components/BackButton";
 import Logo from "../components/Logo";
 import { authenticatedFetch, CHATBOT_API_BASE_URL } from "@/lib/api";
+import ShareItinerary from "@/components/ShareItinerary";
+
+interface GeneratedItinerary {
+  id: string;
+  title: string;
+  destination: string;
+}
 
 const moods = [
   "adventurous",
@@ -29,6 +36,7 @@ const SelfPlanning = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [generatedItinerary, setGeneratedItinerary] = useState<GeneratedItinerary | null>(null);
   const [formData, setFormData] = useState({
     mood: "",
     current_location: "",
@@ -48,6 +56,7 @@ const SelfPlanning = () => {
 
     setIsLoading(true);
     setError("");
+    setGeneratedItinerary(null);
     try {
       const response = await authenticatedFetch(`${CHATBOT_API_BASE_URL}/generate`, {
         method: "POST",
@@ -62,8 +71,14 @@ const SelfPlanning = () => {
       if (!response.ok) {
         throw new Error(data.error || "We couldn't create your itinerary. Please try again.");
       }
-
-      navigate("/itineraries");
+      if (typeof data._id !== "string" || !data._id) {
+        throw new Error("The itinerary was created, but its details could not be loaded. Check your saved itineraries.");
+      }
+      setGeneratedItinerary({
+        id: data._id,
+        title: typeof data.title === "string" ? data.title : "Your new itinerary",
+        destination: typeof data.destination === "string" ? data.destination : formData.destination,
+      });
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unable to generate your itinerary.");
     } finally {
@@ -271,6 +286,25 @@ const SelfPlanning = () => {
                 Your finished itinerary will be saved to your trips.
               </p>
             </form>
+
+            {generatedItinerary && (
+              <div className="mt-7 space-y-4 border-t border-vander-teal/10 pt-6">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-vander-teal">Your itinerary is ready</p>
+                  <h3 className="mt-1 text-lg font-semibold text-vander-dark">{generatedItinerary.title}</h3>
+                  <p className="text-sm text-vander-gray">{generatedItinerary.destination}</p>
+                </div>
+                <ShareItinerary itineraryId={generatedItinerary.id} />
+                <button
+                  type="button"
+                  onClick={() => navigate(`/itinerary/${encodeURIComponent(generatedItinerary.id)}`)}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-vander-teal/20 px-5 py-3 text-sm font-semibold text-vander-teal transition hover:bg-vander-teal/5"
+                >
+                  View full itinerary
+                  <ArrowRight size={17} aria-hidden="true" />
+                </button>
+              </div>
+            )}
           </section>
         </div>
       </div>

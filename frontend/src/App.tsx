@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from './contexts/AuthContext';
 import RequireAuth from "./components/RequireAuth";
 import AccountMenu from "./components/AccountMenu";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Index = lazy(() => import("./pages/Index"));
 const Login = lazy(() => import("./pages/Login"));
@@ -21,6 +22,7 @@ const ItineraryDetail = lazy(() => import("./pages/ItineraryDetail"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const ProfileSettings = lazy(() => import("./pages/ProfileSettings"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const PublicItinerary = lazy(() => import("./pages/PublicItinerary"));
 
 const queryClient = new QueryClient();
 
@@ -33,8 +35,16 @@ const App = () => (
           <Sonner />
           <AccountMenu />
           <Suspense fallback={
-            <div role="status" className="flex min-h-screen items-center justify-center bg-vander-light text-sm font-medium text-vander-teal">
-              Loading your page...
+            <div role="status" aria-label="Loading page" className="min-h-screen bg-vander-light px-4 py-8">
+              <main aria-hidden="true" className="mx-auto max-w-6xl space-y-6">
+                <Skeleton className="h-6 w-36" />
+                <Skeleton className="h-64 w-full rounded-2xl sm:h-80" />
+                <div className="grid gap-6 md:grid-cols-3">
+                  <Skeleton className="h-40 rounded-2xl md:col-span-2" />
+                  <Skeleton className="h-40 rounded-2xl" />
+                </div>
+                <Skeleton className="h-48 w-full rounded-2xl" />
+              </main>
             </div>
           }>
             <Routes>
@@ -43,6 +53,7 @@ const App = () => (
               <Route path="/register" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/shared/:token" element={<PublicItinerary />} />
               <Route path="/travel-preference" element={<RequireAuth><TravelPreference /></RequireAuth>} />
               <Route path="/holiday-packages" element={<HolidayPackages />} />
               <Route path="/self-planning" element={<RequireAuth><SelfPlanning /></RequireAuth>} />

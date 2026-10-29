@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Cloud, CloudRain, CloudSnow, Droplets, Sun, Wind, RefreshCw } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type WeatherData = {
   temperature: number;
@@ -16,7 +17,7 @@ type WeatherData = {
   }[];
 };
 
-const OPENWEATHER_API_KEY = "46258b1f1bf21f8bca29fada892c85c5";
+const OPENWEATHER_API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY;
 const OPENWEATHER_BASE_URL = "https://api.openweathermap.org/data/2.5";
 
 const getWeatherIcon = (condition: string) => {
@@ -36,6 +37,10 @@ const getWeatherIcon = (condition: string) => {
 
 const fetchWeatherFromAPI = async (location: string): Promise<WeatherData> => {
   try {
+    if (!OPENWEATHER_API_KEY) {
+      throw new Error("Missing VITE_OPENWEATHER_API_KEY configuration.");
+    }
+
     console.log("Fetching weather for location:", location);
     
     // Fetch current weather
@@ -137,8 +142,35 @@ const Weather = ({ location, className = "" }: WeatherProps) => {
 
   if (loading && !isRefreshing) {
     return (
-      <div className={`flex items-center justify-center py-6 ${className}`}>
-        <div className="w-8 h-8 border-4 border-vander-teal border-t-transparent rounded-full animate-spin"></div>
+      <div className={`${className}`}>
+        <section role="status" aria-label="Loading weather forecast" className="glassmorphism rounded-2xl p-6">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-6 w-40" />
+            <Skeleton className="h-9 w-9 rounded-full" />
+          </div>
+          <div className="my-6 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-14 w-14 rounded-full" />
+              <div className="space-y-2">
+                <Skeleton className="h-7 w-20" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-4 w-24" />
+            </div>
+          </div>
+          <div className="grid grid-cols-5 gap-2">
+            {Array.from({ length: 5 }, (_, index) => (
+              <div key={index} className="space-y-2">
+                <Skeleton className="mx-auto h-4 w-14" />
+                <Skeleton className="mx-auto h-8 w-8 rounded-full" />
+                <Skeleton className="mx-auto h-3 w-12" />
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
     );
   }

@@ -90,8 +90,11 @@ const ItinerarySchema = new mongoose.Schema({
     days: [DaySchema],
     backpackItems: [String],
     userid: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    image:{type:String,required:true}
+    image:{type:String,required:true},
+    shareTokenHash: { type: String, select: false }
 }, { timestamps: true });
+
+ItinerarySchema.index({ shareTokenHash: 1 }, { unique: true, sparse: true });
 
 const Itinerary = mongoose.model('itineraries', ItinerarySchema);
 

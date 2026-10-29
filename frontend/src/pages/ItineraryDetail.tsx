@@ -365,6 +365,8 @@ import Weather from "../components/Weather";
 // import Map from "../components/Map";
 import { useEffect, useState } from "react";
 import { authenticatedFetch, AUTH_API_BASE_URL } from "@/lib/api";
+import ShareItinerary from "@/components/ShareItinerary";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ItineraryActivity {
   time: string;
@@ -386,41 +388,125 @@ interface ItineraryRecord {
   days: ItineraryDay[];
   backpackItems: string[];
   image: string;
+  isShared?: boolean;
 }
 
 const ItineraryDetail = () => {
   const { itineraryId } = useParams<{ itineraryId: string }>();
   const navigate = useNavigate();
-  const [itinerary, setItinerary] = useState<ItineraryRecord[]>([]);
+  const [itinerary, setItinerary] = useState<ItineraryRecord | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
+    const controller = new AbortController();
+    setIsLoading(true);
+    setLoadError("");
+    setItinerary(null);
+
     async function getData(): Promise<void> {
+      if (!itineraryId) {
+        setLoadError("not-found");
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        const resp = await authenticatedFetch(`${AUTH_API_BASE_URL}/it/${itineraryId}`);
+        const resp = await authenticatedFetch(`${AUTH_API_BASE_URL}/it/${encodeURIComponent(itineraryId)}`, {
+          signal: controller.signal,
+        });
         const data = await resp.json();
         if (resp.ok && data?.itinerary) {
-          setItinerary([data.itinerary]);
+          setItinerary(data.itinerary);
+        } else if (resp.status === 404) {
+          setLoadError("not-found");
         } else {
-          setItinerary([]);
+          setLoadError(data.message || "Unable to load this itinerary. Please try again.");
         }
       } catch (error) {
-        console.error(error);
-        setItinerary([]);
+        if (error instanceof Error && error.name === "AbortError") return;
+        console.error("Unable to load itinerary details:", error);
+        setLoadError("Unable to load this itinerary. Check your connection and try again.");
+      } finally {
+        if (!controller.signal.aborted) setIsLoading(false);
       }
     }
 
-    getData();
+    void getData();
+    return () => controller.abort();
   }, [itineraryId]);
 
-  if (!itineraryId || itinerary.length === 0) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-vander-light flex items-center justify-center">
-        <div className="text-center p-8">
-          <h2 className="text-2xl font-bold text-vander-dark mb-4">Itinerary Not Found</h2>
-          <p className="text-vander-gray mb-6">The itinerary you're looking for doesn't exist or has been removed.</p>
+      <div className="relative min-h-screen bg-vander-light">
+        <BackgroundImage />
+        <main role="status" aria-label="Loading itinerary" className="container relative z-10 mx-auto space-y-6 px-4 py-8">
+          <Skeleton className="h-6 w-40" />
+          <Skeleton className="h-64 w-full rounded-2xl md:h-80" />
+          <section aria-hidden="true" className="rounded-2xl border border-vander-teal/10 bg-white/90 p-6 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-48" />
+                <Skeleton className="h-4 w-72 max-w-full" />
+              </div>
+              <Skeleton className="h-10 w-40 rounded-xl" />
+            </div>
+          </section>
+          <section aria-hidden="true" className="rounded-2xl bg-white/80 p-6 shadow-sm">
+            <Skeleton className="h-5 w-40" />
+            <div className="mt-5 grid grid-cols-5 gap-3">
+              {Array.from({ length: 5 }, (_, index) => (
+                <div key={index} className="space-y-2">
+                  <Skeleton className="mx-auto h-4 w-14" />
+                  <Skeleton className="mx-auto h-8 w-8 rounded-full" />
+                  <Skeleton className="mx-auto h-3 w-12" />
+                </div>
+              ))}
+            </div>
+          </section>
+          <section aria-hidden="true" className="rounded-2xl bg-white/80 p-6 shadow-sm">
+            <Skeleton className="h-5 w-36" />
+            <div className="mt-6 space-y-5">
+              {Array.from({ length: 3 }, (_, index) => (
+                <div key={index} className="space-y-3">
+                  <Skeleton className="h-7 w-20 rounded-lg" />
+                  <Skeleton className="h-16 w-full rounded-xl" />
+                  <Skeleton className="h-16 w-11/12 rounded-xl" />
+                </div>
+              ))}
+            </div>
+          </section>
+        </main>
+      </div>
+    );
+  }
+
+  if (loadError || !itinerary) {
+    const notFound = loadError === "not-found";
+    return (
+      <div className="min-h-screen bg-vander-light flex items-center justify-center px-4">
+        <div className="max-w-md rounded-3xl bg-white/90 p-8 text-center shadow-xl">
+          <h2 className="mb-4 text-2xl font-bold text-vander-dark">
+            {notFound ? "Itinerary Not Found" : "Couldn't load your itinerary"}
+          </h2>
+          <p role={notFound ? undefined : "alert"} className="mb-6 text-vander-gray">
+            {notFound
+              ? "The itinerary you're looking for doesn't exist or has been removed."
+              : loadError}
+          </p>
+          {!notFound && (
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="vander-button mr-2 px-4 py-2"
+            >
+              Try again
+            </button>
+          )}
           <button
+            type="button"
             onClick={() => navigate("/itineraries")}
-            className="Traveze-button px-4 py-2"
+            className="rounded-xl border border-vander-teal/20 px-4 py-2 font-medium text-vander-teal hover:bg-vander-teal/5"
           >
             Back to Itineraries
           </button>
@@ -434,9 +520,7 @@ const ItineraryDetail = () => {
   <div className="min-h-screen bg-vander-light">
     <BackgroundImage />
     <div className="container mx-auto py-8 px-4 relative z-10 space-y-4">
-      {itinerary.map((u, index) => (
-        <Display key={index} itinerary={u} />
-      ))}
+      <Display itinerary={itinerary} />
     </div>
   </div>
 );
@@ -483,7 +567,7 @@ function Display({ itinerary }: { itinerary: ItineraryRecord }) {
             <div className="flex flex-wrap items-center text-white/90 gap-x-6 gap-y-2">
               <div className="flex items-center">
                 <MapPin size={18} className="mr-1" />
-                <span>{itinerary.destination}</span>
+              <span>{itinerary.source} to {itinerary.destination}</span>
               </div>
               <div className="flex items-center">
                 <Calendar size={18} className="mr-1" />
@@ -492,9 +576,10 @@ function Display({ itinerary }: { itinerary: ItineraryRecord }) {
             </div>
           </div>
         </div>
-        <div className="mb-4">
-         <Weather location={itinerary.destination} />
-</div>
+        <div className="mb-8 flex flex-col gap-6">
+          <ShareItinerary itineraryId={itinerary._id} initiallyShared={itinerary.isShared} />
+          <Weather location={itinerary.destination} />
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
             <div className="glassmorphism rounded-2xl p-6 mb-8">

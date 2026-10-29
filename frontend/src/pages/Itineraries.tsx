@@ -1,8 +1,17 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Clock, Compass, MapPin, Plane, Sparkles, Trash2, Wallet } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight, Clock, Compass, MapPin, Plane, Sparkles, Trash2, Wallet } from "lucide-react";
 import BackgroundImage from "../components/BackgroundImage";
 import { useEffect, useState } from "react";
 import { authenticatedFetch, AUTH_API_BASE_URL } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ItinerarySummary {
   _id: string;
@@ -18,6 +27,8 @@ const Itineraries = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [itineraryToDelete, setItineraryToDelete] = useState<ItinerarySummary | null>(null);
+  const [deleteError, setDeleteError] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -41,13 +52,11 @@ const Itineraries = () => {
     getItineraries();
   }, []);
 
-  async function deleteItinerary(itineraryId: string): Promise<void> {
-    if (!window.confirm("Delete this itinerary? This action cannot be undone.")) {
-      return;
-    }
-
+  async function deleteItinerary(): Promise<void> {
+    if (!itineraryToDelete) return;
+    const itineraryId = itineraryToDelete._id;
     setDeletingId(itineraryId);
-    setError("");
+    setDeleteError("");
     try {
       const response = await authenticatedFetch(`${AUTH_API_BASE_URL}/it/${itineraryId}`, {
         method: "DELETE",
@@ -57,8 +66,9 @@ const Itineraries = () => {
         throw new Error(data.message || "Unable to delete itinerary.");
       }
       setItineraries((current) => current.filter((itinerary) => itinerary._id !== itineraryId));
+      setItineraryToDelete(null);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Unable to delete itinerary.");
+      setDeleteError(requestError instanceof Error ? requestError.message : "Unable to delete itinerary.");
     } finally {
       setDeletingId(null);
     }
@@ -82,8 +92,30 @@ const Itineraries = () => {
           Your Travel Itineraries
         </h1>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {itineraries.map((itinerary) => (
+        <div
+          className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
+          role={isLoading ? "status" : undefined}
+          aria-label={isLoading ? "Loading itineraries" : undefined}
+          aria-busy={isLoading}
+        >
+          {isLoading
+            ? Array.from({ length: 6 }, (_, index) => (
+              <article
+                key={`itinerary-skeleton-${index}`}
+                aria-hidden="true"
+                className="glassmorphism overflow-hidden rounded-xl"
+              >
+                <Skeleton className="h-48 w-full rounded-none" />
+                <div className="flex items-center justify-between gap-3 p-4">
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-20" />
+                  </div>
+                  <Skeleton className="h-9 w-24 rounded-lg" />
+                </div>
+              </article>
+            ))
+            : itineraries.map((itinerary) => (
             <article
               key={itinerary._id}
               className="glassmorphism rounded-xl overflow-hidden hover:shadow-lg transition-shadow group"
@@ -123,7 +155,10 @@ const Itineraries = () => {
                 </div>
                 <button
                   type="button"
-                  onClick={() => deleteItinerary(itinerary._id)}
+                  onClick={() => {
+                    setDeleteError("");
+                    setItineraryToDelete(itinerary);
+                  }}
                   disabled={deletingId !== null}
                   className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-red-200 bg-white/70 px-3 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                   aria-label={`Delete ${itinerary.title}`}
@@ -136,7 +171,6 @@ const Itineraries = () => {
             </article>
           ))}
         </div>
-        {isLoading && <p className="text-center text-vander-gray">Loading itineraries...</p>}
         {!isLoading && error && <p role="alert" className="text-center text-red-600">{error}</p>}
         {!isLoading && !error && itineraries.length === 0 && (
           <section
@@ -220,6 +254,60 @@ const Itineraries = () => {
           </section>
         )}
       </div>
+      <AlertDialog
+        open={itineraryToDelete !== null}
+        onOpenChange={(open) => {
+          if (!open && deletingId === null) {
+            setItineraryToDelete(null);
+            setDeleteError("");
+          }
+        }}
+      >
+        <AlertDialogContent className="max-w-md rounded-3xl border border-white/60 bg-white/95 p-0 shadow-2xl backdrop-blur-2xl">
+          <div className="p-6 sm:p-7">
+            <AlertDialogHeader className="text-left">
+              <div className="mb-1 flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-red-600">
+                <AlertTriangle size={23} aria-hidden="true" />
+              </div>
+              <AlertDialogTitle className="text-xl font-semibold text-vander-dark">
+                Delete this itinerary?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-sm leading-6 text-vander-gray">
+                {itineraryToDelete
+                  ? `“${itineraryToDelete.title}” will be permanently deleted. Anyone using its public share link will no longer be able to view it.`
+                  : "This itinerary will be permanently deleted."}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            {deleteError && (
+              <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {deleteError}
+              </p>
+            )}
+            <AlertDialogFooter className="mt-7 gap-3 sm:space-x-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setItineraryToDelete(null);
+                  setDeleteError("");
+                }}
+                disabled={deletingId !== null}
+                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-vander-teal/20 bg-white px-5 py-2.5 text-sm font-semibold text-vander-dark transition hover:bg-vander-teal/5 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Keep itinerary
+              </button>
+              <button
+                type="button"
+                onClick={() => void deleteItinerary()}
+                disabled={deletingId !== null || !itineraryToDelete}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-red-600/20 transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Trash2 size={16} aria-hidden="true" />
+                {deletingId !== null ? "Deleting..." : "Delete itinerary"}
+              </button>
+            </AlertDialogFooter>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

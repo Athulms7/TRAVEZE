@@ -8,6 +8,7 @@ import Map from "../components/Map";
 import Weather from "../components/Weather";
 import { addToSavedPlaces, getSavedPlaces, removeFromSavedPlaces, SavedPlace } from "../components/SavedPlaces";
 import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface TouristPlace {
   name: string;
@@ -163,11 +164,36 @@ const PlaceDetails = () => {
 
   if (loading) {
     return (
-      <div className="h-screen w-full flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-vander-green border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-vander-gray">Loading place details...</p>
-        </div>
+      <div className="relative min-h-screen w-full bg-vander-light">
+        <BackgroundImage fullHeight={false} />
+        <main role="status" aria-label="Loading place details" className="relative z-20">
+          <Skeleton className="h-64 w-full rounded-none sm:h-80 md:h-96" />
+          <section aria-hidden="true" className="relative mx-4 -mt-8 space-y-6 rounded-t-3xl bg-white/80 p-6">
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-8 w-52" />
+              <Skeleton className="h-8 w-16 rounded-lg" />
+            </div>
+            <Skeleton className="h-4 w-48" />
+            <div className="rounded-2xl bg-white p-6">
+              <Skeleton className="h-5 w-40" />
+              <div className="mt-5 grid grid-cols-5 gap-3">
+                {Array.from({ length: 5 }, (_, index) => (
+                  <div key={index} className="space-y-2">
+                    <Skeleton className="mx-auto h-4 w-14" />
+                    <Skeleton className="mx-auto h-8 w-8 rounded-full" />
+                    <Skeleton className="mx-auto h-3 w-12" />
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Skeleton className="h-24 rounded-xl" />
+              <Skeleton className="h-24 rounded-xl" />
+            </div>
+            <Skeleton className="h-32 rounded-xl" />
+            <Skeleton className="h-64 rounded-xl" />
+          </section>
+        </main>
       </div>
     );
   }
