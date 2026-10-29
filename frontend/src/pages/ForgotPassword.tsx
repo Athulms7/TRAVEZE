@@ -52,8 +52,8 @@ const ForgotPassword = () => {
               </span>
               <h1 className="mt-5 text-2xl font-semibold text-vander-dark">Check your inbox</h1>
               <p className="mt-3 text-sm leading-6 text-vander-gray">
-                If an account exists for <strong>{email}</strong>, password reset instructions will arrive shortly.
-                The link expires after 15 minutes.
+                If an account exists for <strong>{email}</strong> and email delivery is configured, reset
+                instructions will arrive shortly. The link expires after 15 minutes; check your spam folder too.
               </p>
               <Link to="/login" className="vander-button mt-7 inline-flex justify-center px-6 py-3">
                 Return to sign in

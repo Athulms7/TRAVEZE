@@ -42,32 +42,75 @@ limits for multiple instances.
   is not configured, password recovery returns an explicit unavailable
   response; normal sign-in and profile-based password changes remain available.
 
-## Deploying on Render
+### Configure and test reset email locally
 
-1. Create a Render Key Value service and keep it private to the Render
-   workspace.
-2. Create an Express Web Service with this repository's `backend` directory
-   as its root, `npm ci` as its build command, and `npm run start:api` as its
-   start command.
-3. Create a Flask Web Service with the same root directory, `pip install -r
-   requirements.txt` as its build command, and
-   `gunicorn src.chatbot:app --bind 0.0.0.0:$PORT` as its start command.
-4. On both services, set `NODE_ENV=production` and set `REDIS_URL` to the
-   Key Value service's **internal** connection URL. Set the required
-   `MONGODB_URI` and `JWT_SECRET` on both services; also set `GROQ_API_KEY`
-   on the Flask service. Enter secrets in Render's environment settings,
-   not in this repository.
-5. In the frontend's Vercel project settings, set
-   `VITE_AUTH_API_URL` to the Express service URL ending in `/api/auth`, and
-   `VITE_CHATBOT_API_URL` to the Flask service URL. Redeploy the frontend
-   after changing these build-time variables.
-6. Scale each Render Web Service to the desired instance count. Render's
-   managed ingress/load balancer distributes requests across healthy
-   instances for that service. Configure `/health` as the health-check path
-   and enable autoscaling in the service settings as needed. Do not put an
-   in-process session or rate-limit counter in an instance: JWT authentication
-   and Redis-backed limits are shared across replicas.
+1. In `backend/.env`, set `FRONTEND_URL` to the exact origin running Vite,
+   normally `http://localhost:5173`.
+2. Provide SMTP credentials. For Gmail, enable 2-Step Verification and create
+   an **App Password** for this application; use `smtp.gmail.com`, port `587`,
+   your Gmail address for `SMTP_USER` and `SMTP_FROM`, and the App Password for
+   `SMTP_PASSWORD`. Never use your normal Google account password. For a live
+   website, use a transactional email provider and verify your sending domain
+   to improve delivery.
+3. Restart the Express API so dotenv loads the new values. Sign in to Traveze,
+   open **Forgot password?**, and submit the email address belonging to a
+   registered account. Check inbox and spam/junk.
+4. Open the link from the email, enter a new password of at least 12
+   characters, then sign in again using it. To diagnose a delivery problem,
+   check the Express API's server log for `Password reset email delivery
+   failed`; the public response intentionally does not reveal whether an
+   account exists.
 
-The Express and Flask services are separate because a Render Web Service
-routes traffic to one listening HTTP port. The local `dev:full` command is
-for development, not the production service start command.
+Example configuration (replace every placeholder locally; never commit real
+credentials):
+
+```dotenv
+FRONTEND_URL=http://localhost:5173
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-sending-account@gmail.com
+SMTP_PASSWORD=your-provider-app-password
+SMTP_FROM=your-sending-account@gmail.com
+```
+
+In production, add these values to the Express service's secret environment
+settings. `FRONTEND_URL` must be the deployed frontend origin, and the sender
+address/domain must be approved by the SMTP provider.
+
+## Deploying the backend on Render
+
+The backend is two separate Render Web Services because each service listens
+on its own Render-provided `PORT`:
+
+1. Connect the GitHub repository to Render and create a Node Web Service for
+   the Express API. Set the root directory to `backend`, build command to
+   `npm ci`, start command to `npm run start:api`, and health check path to
+   `/health`.
+2. Create a Python Web Service from the same repository and branch. Set the
+   root directory to `backend`, build command to
+   `pip install -r requirements-render.txt`, start command to
+   `gunicorn src.chatbot:app --bind 0.0.0.0:$PORT`, and health check path to
+   `/health`. The Render-specific requirements include only the libraries
+   used by the itinerary generator, not the larger ML packages needed by
+   other backend scripts.
+3. Configure the required `MONGODB_URI`, `JWT_SECRET`, and `REDIS_URL` on
+   **both** services. Use the same values for both: both services must use the
+   same Mongo database and JWT signing key. The Mongo connection URL must
+   include the database name (for example `/tripwish` before any `?` options)
+   because the Python service selects the default database from the URI.
+   `REDIS_URL` must be the Redis/Key Value **internal** connection URL.
+4. Set `NODE_ENV=production` on both services. Set `GROQ_API_KEY` on the
+   Python service. Set `FRONTEND_URL`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`,
+   `SMTP_PASSWORD`, and `SMTP_FROM` on the Express service. Use Render's
+   environment settings for secrets, never repository files. Render supplies
+   `PORT`; do not hardcode it.
+5. After deploying the frontend, set `FRONTEND_URL` to its exact public origin
+   on the Express service, and set frontend build variables
+   `VITE_AUTH_API_URL` to the Express URL ending in `/api/auth` and
+   `VITE_CHATBOT_API_URL` to the Python service URL. Rebuild/redeploy the
+   frontend after changing these build-time variables.
+6. Confirm both services return `{"status":"healthy"}` at `/health`.
+
+The local `dev:full` command is for development, not the production service
+start command. Use Redis-backed rate limits and shared MongoDB sessions rather
+than per-process state when running multiple instances.

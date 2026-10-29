@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ArrowLeft, KeyRound } from "lucide-react";
 import Logo from "../components/Logo";
@@ -6,13 +6,23 @@ import BackgroundImage from "../components/BackgroundImage";
 import { AUTH_API_BASE_URL } from "@/lib/api";
 
 const ResetPassword = () => {
-  const [searchParams] = useSearchParams();
-  const token = searchParams.get("token") ?? "";
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [token] = useState(() => searchParams.get("token") ?? "");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.has("token")) {
+      setSearchParams((current) => {
+        const cleaned = new URLSearchParams(current);
+        cleaned.delete("token");
+        return cleaned;
+      }, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
