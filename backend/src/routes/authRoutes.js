@@ -1,7 +1,15 @@
 import express from 'express';
-import { register, login, getProfile } from '../controllers/authController.js';
+import {
+  register,
+  login,
+  getProfile,
+  updateProfile,
+  changePassword,
+  requestPasswordReset,
+  resetPassword,
+} from '../controllers/authController.js';
 import { protect } from '../middleware/authMiddleware.js';
-import { Itinerary } from '../models/user.js';
+import { AuthSession, Itinerary } from '../models/user.js';
 import mongoose from 'mongoose';
 
 
@@ -9,7 +17,19 @@ const router = express.Router();
 
 router.post('/register', register);
 router.post('/login', login);
+router.post('/forgot-password', requestPasswordReset);
+router.post('/reset-password', resetPassword);
 router.get('/profile', protect, getProfile);
+router.patch('/profile', protect, updateProfile);
+router.put('/profile/password', protect, changePassword);
+router.post('/logout', protect, async (req, res, next) => {
+  try {
+    await AuthSession.deleteOne({ tokenId: req.authSessionId, userId: req.user._id });
+    return res.json({ message: 'You have been signed out.' });
+  } catch (error) {
+    return next(error);
+  }
+});
 
 router.post('/it', protect, async (req, res) => {
   try {

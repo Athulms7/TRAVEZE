@@ -5,16 +5,18 @@ import Logo from "../components/Logo";
 import BackgroundImage from "../components/BackgroundImage";
 import BackButton from "../components/BackButton";
 import { useToast } from "@/components/ui/use-toast";
+import { AUTH_API_BASE_URL } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Register = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    phone: "",
     password: "",
     termsAccepted: false
   });
@@ -32,7 +34,7 @@ const Register = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3000/api/auth/register', {
+      const response = await fetch(`${AUTH_API_BASE_URL}/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -40,7 +42,6 @@ const Register = () => {
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
-          phone: formData.phone,
           password: formData.password
         }),
       });
@@ -51,13 +52,13 @@ const Register = () => {
         throw new Error(data.message || 'Registration failed');
       }
 
-      toast({
-        title: "Success!",
-        description: "Registration successful. Please login to continue.",
+      login(data.token, {
+        id: data._id,
+        name: data.name,
+        email: data.email,
       });
-
-      // Redirect to login page after successful registration
-      navigate('/login');
+      toast({ title: "Welcome!", description: "Your account is ready." });
+      navigate('/travel-preference', { replace: true });
     } catch (error) {
       toast({
         variant: "destructive",
@@ -96,6 +97,9 @@ const Register = () => {
                 type="text"
                 name="name"
                 placeholder="Full Name"
+                minLength={2}
+                maxLength={50}
+                autoComplete="name"
                 className="form-input w-full"
                 value={formData.name}
                 onChange={handleChange}
@@ -108,6 +112,8 @@ const Register = () => {
                 type="email"
                 name="email"
                 placeholder="Email Address"
+                maxLength={254}
+                autoComplete="email"
                 className="form-input w-full"
                 value={formData.email}
                 onChange={handleChange}
@@ -115,23 +121,14 @@ const Register = () => {
               />
             </div>
             
-            <div className="animate-fade-up" style={{ animationDelay: "0.2s" }}>
-              <input
-                type="tel"
-                name="phone"
-                placeholder="Phone Number"
-                className="form-input w-full"
-                value={formData.phone}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            
-            <div className="relative animate-fade-up" style={{ animationDelay: "0.25s" }}>
+            <div className="relative animate-fade-up" style={{ animationDelay: "0.2s" }}>
               <input
                 type={showPassword ? "text" : "password"}
                 name="password"
                 placeholder="Password"
+                minLength={8}
+                maxLength={128}
+                autoComplete="new-password"
                 className="form-input w-full pr-12"
                 value={formData.password}
                 onChange={handleChange}

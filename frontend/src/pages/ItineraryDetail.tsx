@@ -364,6 +364,7 @@ import BackgroundImage from "../components/BackgroundImage";
 import Weather from "../components/Weather";
 // import Map from "../components/Map";
 import { useEffect, useState } from "react";
+import { authenticatedFetch, AUTH_API_BASE_URL } from "@/lib/api";
 
 interface ItineraryActivity {
   time: string;
@@ -394,14 +395,8 @@ const ItineraryDetail = () => {
 
   useEffect(() => {
     async function getData(): Promise<void> {
-      const token = localStorage.getItem("token") || "";
       try {
-        const resp = await fetch(`http://localhost:3000/api/auth/it/${itineraryId}`, {
-          method: "GET",
-          headers: {
-            authorization: token
-          }
-        });
+        const resp = await authenticatedFetch(`${AUTH_API_BASE_URL}/it/${itineraryId}`);
         const data = await resp.json();
         if (resp.ok && data?.itinerary) {
           setItinerary([data.itinerary]);

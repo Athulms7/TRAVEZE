@@ -27,26 +27,49 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['user', 'admin'],
     default: 'user'
+  },
+  authVersion: {
+    type: Number,
+    default: 0
   }
 }, {
   timestamps: true
 });
 
-// Hash password before saving
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function() {
   if (!this.isModified('password')) {
-    next();
+    return;
   }
-  const salt = await bcrypt.genSalt(10);
+  const salt = await bcrypt.genSalt(12);
   this.password = await bcrypt.hash(this.password, salt);
 });
 
-// Compare password method
 userSchema.methods.matchPassword = async function(enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
 const User = mongoose.model('User', userSchema);
+
+const authSessionSchema = new mongoose.Schema({
+  tokenId: { type: String, required: true, unique: true },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  expiresAt: { type: Date, required: true }
+}, { timestamps: true });
+
+authSessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+const AuthSession = mongoose.model('AuthSession', authSessionSchema);
+
+const passwordResetTokenSchema = new mongoose.Schema({
+  tokenHash: { type: String, required: true, unique: true },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  authVersion: { type: Number, required: true },
+  expiresAt: { type: Date, required: true }
+}, { timestamps: true });
+
+passwordResetTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+const PasswordResetToken = mongoose.model('PasswordResetToken', passwordResetTokenSchema);
 
 const ActivitySchema = new mongoose.Schema({
     time: String,
@@ -73,4 +96,4 @@ const ItinerarySchema = new mongoose.Schema({
 const Itinerary = mongoose.model('itineraries', ItinerarySchema);
 
 
-export { User, Itinerary };
+export { User, AuthSession, PasswordResetToken, Itinerary };

@@ -1,14 +1,16 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import Logo from "../components/Logo";
 import BackgroundImage from "../components/BackgroundImage";
 import BackButton from "../components/BackButton";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { AUTH_API_BASE_URL } from "@/lib/api";
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
@@ -32,14 +34,15 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3000/api/auth/login', {
+      const response = await fetch(`${AUTH_API_BASE_URL}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           email: formData.email,
-          password: formData.password
+          password: formData.password,
+          rememberMe: formData.rememberMe,
         }),
       });
 
@@ -49,20 +52,25 @@ const Login = () => {
         throw new Error(data.message || 'Login failed');
       }
 
-      // Use the auth context to handle login
       login(data.token, {
         id: data._id,
         name: data.name,
         email: data.email
-      });
+      }, formData.rememberMe);
 
       toast({
         title: "Success!",
         description: "Login successful. Welcome back!",
       });
 
-      // Redirect to travel preference page
-      navigate('/travel-preference');
+      const redirectState = location.state as {
+        from?: { pathname?: string; search?: string; hash?: string };
+      } | null;
+      const path = redirectState?.from?.pathname;
+      const destination = path?.startsWith("/") && !path.startsWith("//")
+        ? `${path}${redirectState?.from?.search ?? ""}${redirectState?.from?.hash ?? ""}`
+        : "/travel-preference";
+      navigate(destination, { replace: true });
     } catch (error) {
       toast({
         variant: "destructive",
@@ -99,6 +107,8 @@ const Login = () => {
                 type="email"
                 name="email"
                 placeholder="Email Address"
+                maxLength={254}
+                autoComplete="email"
                 className="form-input w-full"
                 value={formData.email}
                 onChange={handleChange}
@@ -111,6 +121,8 @@ const Login = () => {
                 type={showPassword ? "text" : "password"}
                 name="password"
                 placeholder="Password"
+                maxLength={128}
+                autoComplete="current-password"
                 className="form-input w-full pr-12"
                 value={formData.password}
                 onChange={handleChange}

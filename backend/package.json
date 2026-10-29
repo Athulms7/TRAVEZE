@@ -6,17 +6,23 @@
   "type": "module",
   "scripts": {
     "start": "python src/chatbot.py",
+    "start:api": "node src/index.js",
+    "start:chatbot": "python src/chatbot.py",
     "dev": "nodemon src/index.js",
-    "dev:full":"concurrently -n \"BACKEND,PYTHON\" -c \"blue,green\" \"npm run dev\" \"npm start\""
+    "dev:full": "concurrently -n \"BACKEND,PYTHON\" -c \"blue,green\" \"npm run dev\" \"npm start\""
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.1",
     "express": "^4.18.2",
+    "express-rate-limit": "^7.5.1",
     "flask": "^0.2.10",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.1.1",
+    "nodemailer": "^10.3.0",
+    "rate-limit-redis": "^4.2.1",
+    "redis": "^4.7.0",
     "validator": "^13.11.0"
   },
   "devDependencies": {

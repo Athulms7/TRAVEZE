@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, Clock, Wallet, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Clock, Compass, MapPin, Plane, Sparkles, Trash2, Wallet } from "lucide-react";
 import BackgroundImage from "../components/BackgroundImage";
 import { useEffect, useState } from "react";
+import { authenticatedFetch, AUTH_API_BASE_URL } from "@/lib/api";
 
 interface ItinerarySummary {
   _id: string;
@@ -22,11 +23,8 @@ const Itineraries = () => {
   useEffect(() => {
     async function getItineraries(): Promise<void> {
       try {
-        const response = await fetch("http://localhost:3000/api/auth/it", {
+        const response = await authenticatedFetch(`${AUTH_API_BASE_URL}/it`, {
           method: "POST",
-          headers: {
-            authorization: localStorage.getItem("token") || "",
-          },
         });
         const data = await response.json();
         if (!response.ok) {
@@ -51,11 +49,8 @@ const Itineraries = () => {
     setDeletingId(itineraryId);
     setError("");
     try {
-      const response = await fetch(`http://localhost:3000/api/auth/it/${itineraryId}`, {
+      const response = await authenticatedFetch(`${AUTH_API_BASE_URL}/it/${itineraryId}`, {
         method: "DELETE",
-        headers: {
-          authorization: localStorage.getItem("token") || "",
-        },
       });
       const data = await response.json();
       if (!response.ok) {
@@ -144,7 +139,85 @@ const Itineraries = () => {
         {isLoading && <p className="text-center text-vander-gray">Loading itineraries...</p>}
         {!isLoading && error && <p role="alert" className="text-center text-red-600">{error}</p>}
         {!isLoading && !error && itineraries.length === 0 && (
-          <p className="text-center text-vander-gray">No saved itineraries yet. Generate a trip to see it here.</p>
+          <section
+            aria-labelledby="empty-itineraries-title"
+            className="mx-auto mt-10 grid max-w-5xl overflow-hidden rounded-[2rem] border border-white/70 bg-white/90 shadow-[0_24px_80px_-32px_rgba(15,61,72,0.35)] backdrop-blur-xl md:grid-cols-[1.05fr_0.95fr]"
+          >
+            <div className="flex flex-col items-start justify-center px-7 py-10 sm:px-10 sm:py-12">
+              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-vander-green/15 bg-vander-green/10 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-vander-teal">
+                <Sparkles size={14} aria-hidden="true" />
+                A little room for adventure
+              </div>
+              <h2
+                id="empty-itineraries-title"
+                className="max-w-lg text-3xl font-semibold leading-tight tracking-tight text-vander-dark sm:text-4xl"
+              >
+                Your next great escape starts here.
+              </h2>
+              <p className="mt-4 max-w-md text-base leading-7 text-vander-gray">
+                No itineraries just yet. Tell us what you love, and we’ll help turn your next
+                destination into a trip worth remembering.
+              </p>
+              <button
+                type="button"
+                onClick={() => navigate("/self-planning")}
+                className="vander-button group mt-8 inline-flex items-center gap-3 px-6 py-3.5 text-sm shadow-lg shadow-vander-teal/20"
+              >
+                Generate an itinerary
+                <ArrowRight size={17} aria-hidden="true" className="transition-transform group-hover:translate-x-1" />
+              </button>
+              <p className="mt-4 text-xs font-medium tracking-wide text-vander-gray/80">
+                Your plans will be saved here for your next visit.
+              </p>
+            </div>
+
+            <div
+              aria-hidden="true"
+              className="relative flex min-h-[280px] items-center justify-center overflow-hidden bg-gradient-to-br from-[#e7f5ef] via-[#e5f1f3] to-[#dcebf0] p-8 sm:min-h-[360px]"
+            >
+              <div className="absolute -right-14 -top-20 h-56 w-56 rounded-full bg-white/50 blur-2xl" />
+              <div className="absolute -bottom-20 -left-12 h-56 w-56 rounded-full bg-vander-green/15 blur-2xl" />
+              <svg
+                viewBox="0 0 420 300"
+                className="absolute inset-0 h-full w-full"
+                fill="none"
+              >
+                <path d="M-20 66C68 12 103 116 188 78S324 24 445 92" stroke="white" strokeWidth="2" />
+                <path d="M-15 232C73 180 125 275 218 222S352 158 440 208" stroke="white" strokeWidth="2" />
+                <path d="M78 -20C126 53 89 113 145 163S211 249 187 325" stroke="white" strokeWidth="2" />
+                <path d="M328 -14C267 47 320 115 267 154S228 232 278 317" stroke="white" strokeWidth="2" />
+                <path
+                  d="M92 207C125 177 144 202 171 170S212 111 247 133 287 176 326 91"
+                  stroke="#4e9b86"
+                  strokeDasharray="5 8"
+                  strokeLinecap="round"
+                  strokeWidth="3"
+                />
+              </svg>
+              <div className="absolute left-[19%] top-[61%] flex h-11 w-11 items-center justify-center rounded-full bg-white text-vander-teal shadow-lg shadow-vander-teal/15">
+                <MapPin size={20} fill="currentColor" className="text-vander-teal" />
+                <span className="absolute inset-0 rounded-full bg-vander-teal/15 animate-ping" />
+              </div>
+              <div className="absolute right-[19%] top-[25%] flex h-11 w-11 items-center justify-center rounded-full bg-white text-vander-teal shadow-lg shadow-vander-teal/15">
+                <MapPin size={20} fill="currentColor" className="text-vander-teal" />
+              </div>
+              <div className="absolute left-[46%] top-[43%] flex h-12 w-12 rotate-[-12deg] items-center justify-center rounded-2xl bg-vander-teal text-white shadow-xl shadow-vander-teal/25">
+                <Plane size={22} />
+              </div>
+              <div className="absolute bottom-7 left-7 inline-flex items-center gap-2 rounded-2xl border border-white/80 bg-white/85 px-4 py-3 shadow-lg shadow-vander-dark/5 backdrop-blur-md">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-vander-green/10 text-vander-teal">
+                  <Compass size={19} />
+                </span>
+                <span>
+                  <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-vander-gray">Your story</span>
+                  <span className="mt-0.5 block text-sm font-semibold text-vander-dark">Starts anywhere</span>
+                </span>
+              </div>
+              <div className="absolute right-7 top-7 rounded-full border border-white/70 bg-white/60 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-vander-teal/80 backdrop-blur-md">
+                Explore more
+              </div>
+            </div>
+          </section>
         )}
       </div>
     </div>

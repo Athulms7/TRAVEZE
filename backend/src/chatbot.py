@@ -1,16 +1,25 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from groq import Groq
 import jwt
 import re
 from pymongo import MongoClient
 from bson import ObjectId
 from dotenv import load_dotenv
+from datetime import datetime, timezone
 import os
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 
 load_dotenv()
 groq_api_key = os.getenv("GROQ_API_KEY")
+jwt_secret = os.getenv("JWT_SECRET")
+if not jwt_secret:
+    raise RuntimeError("JWT_SECRET must be configured.")
+if os.getenv("NODE_ENV") == "production" and len(jwt_secret.encode("utf-8")) < 32:
+    raise RuntimeError("JWT_SECRET must be at least 32 bytes in production.")
 
 
 groq = Groq(api_key=groq_api_key)
@@ -18,19 +27,49 @@ groq = Groq(api_key=groq_api_key)
 client = MongoClient(os.getenv("MONGODB_URI", "mongodb://localhost:27017/tripwish"))
 db = client.get_default_database()
 collection = db["itineraries"]
+auth_sessions = db["authsessions"]
+users = db["users"]
 
 
 app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = 16 * 1024
 CORS(app)
+if os.getenv("NODE_ENV") == "production":
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
+
+redis_url = os.getenv("REDIS_URL")
+if not redis_url and os.getenv("NODE_ENV") == "production":
+    raise RuntimeError("REDIS_URL is required in production for shared rate limiting.")
+if not redis_url:
+    app.logger.warning("REDIS_URL is not set; using per-process rate limits for local development.")
+
+limiter = Limiter(
+    key_func=get_remote_address,
+    app=app,
+    default_limits=["100 per 15 minutes"],
+    storage_uri=redis_url or "memory://",
+    headers_enabled=True,
+)
+
+
+def get_authenticated_user_rate_limit_key():
+    user_id, _auth_error = get_authenticated_user_id()
+    if user_id:
+        return f"user:{user_id}"
+    return get_remote_address()
+
+
+@app.errorhandler(429)
+def handle_rate_limit_exceeded(error):
+    response = error.get_response()
+    response.data = app.json.dumps({"error": "Too many requests. Please try again later."})
+    response.content_type = "application/json"
+    return response
 
 
 def get_authenticated_user_id():
     authorization = request.headers.get("Authorization", "")
     token = re.sub(r"^Bearer\s+", "", authorization, flags=re.IGNORECASE).strip()
-    jwt_secret = os.getenv("JWT_SECRET")
-    if not jwt_secret:
-        app.logger.error("JWT_SECRET is not configured.")
-        return None, (jsonify({"error": "Authentication is not configured."}), 500)
     if not token:
         return None, (jsonify({"error": "Authentication is required."}), 401)
 
@@ -40,8 +79,26 @@ def get_authenticated_user_id():
         return None, (jsonify({"error": "Authentication token is invalid or expired."}), 401)
 
     user_id = decoded_token.get("id")
-    if not isinstance(user_id, str) or not ObjectId.is_valid(user_id):
+    token_id = decoded_token.get("jti")
+    auth_version = decoded_token.get("authVersion")
+    if (
+        not isinstance(user_id, str)
+        or not ObjectId.is_valid(user_id)
+        or not isinstance(token_id, str)
+        or type(auth_version) is not int
+    ):
         return None, (jsonify({"error": "Authentication token does not contain a valid user ID."}), 401)
+
+    object_id = ObjectId(user_id)
+    active_session = auth_sessions.find_one({
+        "tokenId": token_id,
+        "userId": object_id,
+        "expiresAt": {"$gt": datetime.now(timezone.utc)},
+    })
+    user = users.find_one({"_id": object_id}, {"authVersion": 1})
+    if not active_session or not user or user.get("authVersion", 0) != auth_version:
+        return None, (jsonify({"error": "Authentication token is invalid or expired."}), 401)
+
     return user_id, None
 
 
@@ -146,6 +203,7 @@ def parse_itinerary(text, title, source, destination, number_of_days, budget, us
 
 
 @app.route("/generate", methods=["POST"])
+@limiter.limit("5 per 15 minutes", key_func=get_authenticated_user_rate_limit_key)
 def generate_and_store():
     user_id, auth_error = get_authenticated_user_id()
     if auth_error:
@@ -161,25 +219,40 @@ def generate_and_store():
         return jsonify({"error": f"Missing fields: {', '.join(missing)}"}), 400
 
     text_fields = ["mood", "current_location", "destination"]
-    if any(not isinstance(data[field], str) or not data[field].strip() for field in text_fields):
+    if any(
+        not isinstance(data[field], str) or not data[field].strip() or len(data[field].strip()) > 100
+        for field in text_fields
+    ):
         return jsonify({"error": "Mood, current location, and destination must be text."}), 400
+    allowed_moods = {
+        "adventurous", "relaxed", "cultural", "romantic", "family-friendly",
+        "luxury", "budget-friendly", "spiritual", "thrifting",
+    }
+    if data["mood"] not in allowed_moods:
+        return jsonify({"error": "Choose a valid travel style."}), 400
 
     try:
+        if isinstance(data["days"], bool) or isinstance(data["budget"], bool):
+            raise ValueError
         days = int(data["days"])
         budget = int(data["budget"])
     except (TypeError, ValueError):
         return jsonify({"error": "Days and budget must be positive whole numbers."}), 400
-    if days <= 0 or budget <= 0:
-        return jsonify({"error": "Days and budget must be positive whole numbers."}), 400
+    if (
+        days <= 0 or days > 30 or budget <= 0 or budget > 100_000_000
+        or str(data["days"]).strip() != str(days)
+        or str(data["budget"]).strip() != str(budget)
+    ):
+        return jsonify({"error": "Choose 1-30 days and a whole-number budget up to ₹100,000,000."}), 400
 
     title = f"{data['destination'].title()} Exploration: A {days}-Day Journey"
     try:
         raw_text = generate_itinerary(
-            data["destination"],
+            data["destination"].strip(),
             days,
             budget,
-            data["current_location"],
-            data["mood"],
+            data["current_location"].strip(),
+            data["mood"].strip().lower(),
         )
     except Exception:
         app.logger.exception("Itinerary generation failed.")
@@ -189,8 +262,8 @@ def generate_and_store():
         parsed = parse_itinerary(
             raw_text,
             title,
-            data["current_location"],
-            data["destination"],
+            data["current_location"].strip(),
+            data["destination"].strip(),
             days,
             budget,
             user_id,
@@ -208,6 +281,17 @@ def generate_and_store():
     parsed["_id"] = str(inserted.inserted_id)
     parsed["userid"] = str(parsed["userid"])
     return jsonify(parsed), 200
+
+
+@app.route("/health", methods=["GET"])
+@limiter.exempt
+def health_check():
+    try:
+        client.admin.command("ping")
+        return jsonify({"status": "healthy"}), 200
+    except Exception:
+        app.logger.exception("Chatbot health check failed.")
+        return jsonify({"status": "unhealthy"}), 503
 
 
 @app.route("/itineraries", methods=["GET"])
@@ -229,4 +313,5 @@ def get_user_itineraries():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    port = os.getenv("PORT") if os.getenv("NODE_ENV") == "production" else os.getenv("CHATBOT_PORT", "5000")
+    app.run(host="0.0.0.0", debug=os.getenv("NODE_ENV") != "production", port=int(port))

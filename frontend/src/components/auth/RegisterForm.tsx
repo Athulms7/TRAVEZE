@@ -4,10 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
+import { AUTH_API_BASE_URL } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function RegisterForm() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -28,7 +31,7 @@ export function RegisterForm() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3000/api/auth/register', {
+      const response = await fetch(`${AUTH_API_BASE_URL}/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -42,16 +45,18 @@ export function RegisterForm() {
         throw new Error(data.message || 'Registration failed');
       }
 
-      // Store the token in localStorage
-      localStorage.setItem('token', data.token);
+      login(data.token, {
+        id: data._id,
+        name: data.name,
+        email: data.email,
+      });
 
       toast({
         title: "Success!",
         description: "Registration successful. Welcome!",
       });
 
-      // Redirect to dashboard or home page
-      navigate('/dashboard');
+      navigate('/travel-preference', { replace: true });
     } catch (error) {
       toast({
         variant: "destructive",
@@ -96,6 +101,8 @@ export function RegisterForm() {
           name="password"
           type="password"
           required
+          minLength={8}
+          maxLength={128}
           placeholder="Create a password"
           value={formData.password}
           onChange={handleChange}

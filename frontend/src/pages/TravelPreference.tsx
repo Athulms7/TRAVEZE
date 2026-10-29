@@ -1,29 +1,10 @@
-import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Compass, Palmtree, Luggage } from "lucide-react";
 import BackgroundImage from "../components/BackgroundImage";
 import BackButton from "../components/BackButton";
-import { useToast } from "@/components/ui/use-toast";
 
 const TravelPreference = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
-
-  useEffect(() => {
-    // Check if user is authenticated
-    const token = localStorage.getItem('token');
-    const user = localStorage.getItem('user');
-
-    if (!token || !user) {
-      toast({
-        variant: "destructive",
-        title: "Authentication Required",
-        description: "Please login to access this page.",
-      });
-      navigate('/login');
-      return;
-    }
-  }, [navigate, toast]);
 
   return (
     <div className="h-screen w-full overflow-hidden relative page-transition">
